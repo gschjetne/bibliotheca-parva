@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Bibliotheca Parva
+{% endblock title %}
+
+{% block body %}
+
+<input 
+    type="search"
+    name="query"
+    hx-post="/search"
+    hx-trigger="keyup changed delay:100ms, search"
+    hx-target="#search-results"
+/>
+
+<table>
+    <thead>
+        <tr>
+            <th>ISBN</th>
+            <th>Title</th>
+            <th>Authors</th>
+            <th>Location</th>
+        </tr>
+    </thead>
+    <tbody id="search-results">
+    </tbody>
+</table>
+
+{% endblock body %}
