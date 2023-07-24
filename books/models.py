@@ -52,7 +52,7 @@ class Subject(models.Model):
 class Book(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    title = models.CharField(max_length=512)
+    title = models.CharField(max_length=512, blank=True, null=True)
     subtitle = models.CharField(max_length=512, blank=True, null=True)
     edition_name = models.CharField(max_length=512, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
@@ -64,7 +64,7 @@ class Book(models.Model):
     authors = models.ManyToManyField(Person, related_name='author_of', blank=True)
     editors = models.ManyToManyField(Person, related_name='editor_of', blank=True)
     subjects = models.ManyToManyField(Subject, blank=True)
-    ol_id = models.CharField(max_length=512, blank=True, unique=True)
+    ol_id = models.CharField(max_length=512, blank=True, null=True)
     location = models.ForeignKey(Location, on_delete=models.SET_NULL, null=True)
 
     def __str__(self) -> str:
