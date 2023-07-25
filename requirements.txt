@@ -3,3 +3,4 @@ isbnlib==3.10.14
 django-htmx==1.16.0
 django-tailwind==3.6.0
 django-browser-reload==1.11.0
+requests==2.31.0

@@ -1,10 +1,23 @@
 {% for book in books %}
-<tr>
-    <td>{{ book.isbn }}</td>
-    <td>{{ book.title }}</td>
-    <td>{{ book.authors }}</td>
-    <td>{{ book.location }}</td>
-    <td>
+<tr class="odd:bg-slate-200">
+    <td class="p-2 font-mono text-center border border-slate-300">
+        {{ book.isbn }}
+    </td>
+    <td class="p-2 border border-slate-300">
+        <p class="font-bold">
+            {{ book.title }}
+        </p>
+        <p>
+            {{ book.subtitle }}
+        </p>
+    </td>
+    <td class="p-2 border border-slate-300">
+        {{ book.authors }}
+    </td>
+    <td class="p-2 border border-slate-300">
+        {{ book.location }}
+    </td>
+    <td class="p-2 border border-slate-300">
         <a href="/admin/books/book/{{ book.id }}/change/">edit</a>
     </td>
 </tr>

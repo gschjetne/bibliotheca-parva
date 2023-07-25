@@ -1,27 +1,9 @@
+import re
 from django.db import models
-from django.core.exceptions import ValidationError
-from isbnlib import canonical, is_isbn10, is_isbn13, to_isbn10, to_isbn13
+from isbnlib import to_isbn10, to_isbn13
+import requests
 
-def validate_canonical_isbn(isbn):
-    if isbn != canonical(isbn):
-        raise ValidationError(
-            f"the ISBN '{isbn}' is not in the canonical form: '{canonical(isbn)}'",
-            params={"isbn": isbn}
-        )
-
-def validate_isbn_10(isbn):
-    if not is_isbn10(isbn):
-        raise ValidationError(
-            f"The ISBN '{isbn}' is not a valid ISBN-10",
-            params={"isbn": isbn}
-        )
-
-def validate_isbn_13(isbn):
-    if not is_isbn13(isbn):
-        raise ValidationError(
-            f"The ISBN '{isbn}' is not a valid ISBN-13",
-            params={"isbn": isbn}
-        )
+from books.validators import validate_canonical_isbn, validate_isbn_10, validate_isbn_13
 
 class Person(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
@@ -65,7 +47,7 @@ class Book(models.Model):
     editors = models.ManyToManyField(Person, related_name='editor_of', blank=True)
     subjects = models.ManyToManyField(Subject, blank=True)
     ol_id = models.CharField(max_length=512, blank=True, null=True)
-    location = models.ForeignKey(Location, on_delete=models.SET_NULL, null=True)
+    location = models.ForeignKey(Location, on_delete=models.SET_NULL, blank=True, null=True)
 
     def __str__(self) -> str:
         author_list = ", ".join([author.__str__() for author in self.authors.all()])
@@ -78,3 +60,46 @@ class Book(models.Model):
             self.isbn_13 = to_isbn13(self.isbn_10)
             
         return super().clean()
+    
+    def fetch_metadata(self):
+        res = requests.get(f"https://openlibrary.org/isbn/{self.isbn_13}.json")
+        if res.ok:
+            ol = res.json()
+
+            if 'authors' in ol:
+                if not self.id:
+                    self.save()
+
+                author_ids = []
+                for a in ol['authors']:
+                    a_key = a['key']
+                    a_res = requests.get(f"https://openlibrary.org{a_key}.json")
+                    if a_res.ok:
+                        a_json = a_res.json()
+                        name = a_json['name'] if 'name' in a_json else "Anonymous"
+                        person, _ = Person.objects.get_or_create(name=name)
+                        author_ids.append(person.id)
+                        if person.ol_id != a_key:
+                            person.ol_id = a_key
+                            person.save()
+
+                self.authors.set(author_ids)
+            
+            if 'subjects' in ol:
+                if not self.id:
+                    self.save()
+
+                subject_ids = [Subject.objects.get_or_create(name=subject_name)[0].id for subject_name in ol['subjects']]
+                self.subjects.set(subject_ids)
+            
+            self.title = ol['title']
+            if 'subtitle' in ol: self.subtitle = ol['subtitle']
+            if 'edition_name' in ol: self.edition_name = ol['edition_name']
+            if 'description' in ol: self.description = ol['description']['value']
+            if 'publisher' in ol: self.published_by = ", ".join(ol['publisher'])
+            if 'publish_places' in ol: self.published_place = ", ".join(ol['publish_places'])
+            if 'publish_date' in ol: self.published_year = re.search('\d{4}', ol['publish_date']).group(0)
+            self.ol_id = ol['key']
+            
+            
+            
