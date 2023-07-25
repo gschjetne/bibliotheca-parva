@@ -56,12 +56,16 @@ class Book(models.Model):
     def clean(self) -> None:
         if self.isbn_13:
             self.isbn_10 = to_isbn10(self.isbn_13)
-        elif self.is_isbn10:
+        elif self.isbn_10:
             self.isbn_13 = to_isbn13(self.isbn_10)
             
         return super().clean()
     
     def fetch_metadata(self):
+        self.fetch_openlibrary_metadata() or self.fetch_bibbi_metadata()
+        self.save()
+
+    def fetch_openlibrary_metadata(self):
         res = requests.get(f"https://openlibrary.org/isbn/{self.isbn_13}.json")
         if res.ok:
             ol = res.json()
@@ -100,6 +104,52 @@ class Book(models.Model):
             if 'publish_places' in ol: self.published_place = ", ".join(ol['publish_places'])
             if 'publish_date' in ol: self.published_year = re.search('\d{4}', ol['publish_date']).group(0)
             self.ol_id = ol['key']
+            return True
+        else:
+            return False
             
+    def fetch_bibbi_metadata(self):
+        res = requests.get('https://bibliografisk.bs.no/v1/works', {'query': self.isbn_13})
+        if res.ok:
+            json = res.json()
+            if json['total'] != 1:
+                return False
             
+            bibbi = json['works'][0]
+
+            if 'creator' in bibbi:
+                author_names = [" ".join(reversed(a['name'].split(', '))) for a in bibbi['creator']]
+                author_ids = [Person.objects.get_or_create(name=name)[0].id for name in author_names]
+                if not self.id:
+                    self.save()
+                self.authors.set(author_ids)
+
+            if 'name' in bibbi:
+                self.title = bibbi['name']
             
+            pub = next(filter(lambda e : e['isbn'] == self.isbn_13, bibbi['publications']), None)
+            
+            if pub:
+                subject_names = []
+                if 'name' in pub: self.title = pub['name']
+                if 'description' in pub: self.description = pub['description']
+                    
+                if 'about' in pub:
+                    for s in pub['about']:
+                        subject_names.append(s['name']['nob'])
+                    
+
+                if 'genre' in pub:
+                    for g in pub['genre']:
+                        subject_names.append(g['name']['nob'])
+                        
+                if 'datePublished' in pub: self.year = re.search('\d{4}', pub['datePublished']).group(0)
+
+                subject_ids = [Subject.objects.get_or_create(name=name)[0].id for name in subject_names]
+                if not self.id:
+                    self.save()
+                self.subjects.set(subject_ids)
+
+            return True
+        else:
+            return False

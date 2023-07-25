@@ -16,7 +16,6 @@ def index(request):
                 book.isbn_10 = isbnlib.canonical(isbnlib.to_isbn10(isbn))
                 book.isbn_13 = isbnlib.canonical(isbnlib.to_isbn13(isbn))
                 book.fetch_metadata()
-                book.save()
                 return HttpResponseRedirect(f"/admin/books/book/{book.id}/change/")
             else:
                 return HttpResponseRedirect("/admin/books/book/add/")
