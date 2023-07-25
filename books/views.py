@@ -26,12 +26,15 @@ def index(request):
 
 def search(request):
     def to_dict(book):
+        authors = [a.name for a in book.authors.all()]
+        editors = [f"{e.name} (ed.)" for e in book.editors.all()]
+
         return {
             'id': book.id,
             'isbn': isbnlib.mask(book.isbn_13) if book.isbn_13 else '',
             'title': book.title if book.title else 'Missing Title',
             'subtitle': book.subtitle if book.subtitle else '',
-            'authors': ', '.join([a.name for a in book.authors.all()]),
+            'authors': ', '.join(authors + editors),
             'location': book.location.name if book.location else None,
         }
 
