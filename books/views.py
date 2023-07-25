@@ -3,7 +3,9 @@ from django.template import loader
 import isbnlib
 from .forms import NewFromIsbnForm
 from .models import Book
+from django.contrib.auth.decorators import login_required
 
+@login_required
 def index(request):
     if request.method == 'POST':
         form = NewFromIsbnForm(request.POST)
@@ -24,6 +26,7 @@ def index(request):
     template = loader.get_template("index.html")
     return HttpResponse(template.render({'form': form}, request))
 
+@login_required
 def search(request):
     def to_dict(book):
         authors = [a.name for a in book.authors.all()]
@@ -44,10 +47,11 @@ def search(request):
 
     if query:
         by_title = Book.objects.filter(title__icontains=query)
+        by_subtitle = Book.objects.filter(subtitle__icontains=query)
         by_isbn_13 = Book.objects.filter(isbn_13__startswith=query)
         by_isbn_10 = Book.objects.filter(isbn_10__startswith=query)
 
-        books = (by_title | by_isbn_13 | by_isbn_10).order_by('title')[:50]
+        books = (by_title | by_subtitle | by_isbn_13 | by_isbn_10).order_by('title')[:50]
 
     template = loader.get_template("search.html")
     return HttpResponse(template.render({'books': map(to_dict, books)}, request))
