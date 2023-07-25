@@ -1,7 +1,7 @@
 {% load django_htmx %}
 {% load static %}
 
-<!DOCTYPE html>
+{% comment %} <!DOCTYPE html>
 <html>
     <head>
         <title>
@@ -13,4 +13,30 @@
         <script src="{% static 'js/htmx.min.js' %}" defer></script>
         {% django_htmx_script %}
     </body>
+</html> {% endcomment %}
+
+{% load django_htmx %}
+{% load static %}
+{% load static tailwind_tags %}
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+    <title>{% block title %}{% endblock title %}</title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta http-equiv="X-UA-Compatible" content="ie=edge">
+		{% tailwind_css %}
+	</head>
+
+	<body 
+        class="bg-gray-50 font-serif leading-normal tracking-normal"
+        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+		<div class="container mx-auto p-5">
+			{% block body %}{% endblock body %}
+
+            <script src="{% static 'js/htmx.min.js' %}" defer></script>
+            {% django_htmx_script %}
+		</div>
+	</body>
 </html>

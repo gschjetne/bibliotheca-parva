@@ -1,6 +1,7 @@
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.template import loader
+import isbnlib
 
 from .models import Book
 
@@ -12,7 +13,7 @@ def search(request):
     def to_dict(book):
         return {
             'id': book.id,
-            'isbn': book.isbn_13 if book.isbn_13 else '',
+            'isbn': isbnlib.mask(book.isbn_13) if book.isbn_13 else '',
             'title': book.title,
             'authors': ', '.join([a.name for a in book.authors.all()]),
             'location': book.location.name if book.location else None,
