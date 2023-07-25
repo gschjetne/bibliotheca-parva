@@ -9,8 +9,8 @@ def index(request):
         form = NewFromIsbnForm(request.POST)
         if form.is_valid():
             book = Book()
-            if 'isbn' in form.cleaned_data:
-                isbn = form.cleaned_data['isbn']
+            isbn = form.cleaned_data['isbn']
+            if isbn:
                 book.isbn_10 = isbnlib.canonical(isbnlib.to_isbn10(isbn))
                 book.isbn_13 = isbnlib.canonical(isbnlib.to_isbn13(isbn))
                 book.fetch_metadata()
