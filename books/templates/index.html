@@ -8,7 +8,7 @@ Bibliotheca Parva
 
 <div class="flex justify-between">
     <input 
-        class="border border-slate-500 rounded-full w-80"
+        class="border border-slate-500 shadow-inner rounded-full w-80 text-xs"
         type="search"
         name="query"
         placeholder="Search"
@@ -20,12 +20,12 @@ Bibliotheca Parva
     <form method="post">
         {% csrf_token %}
         <input
-            class="border border-slate-500 rounded-full"
+            class="border border-slate-500 shadow-inner rounded-full text-xs"
             name="isbn"
             placeholder="ISBN"
         />
         <input
-            class="border border-slate-500 bg-white p-2 m-1 font-sans font-bold text-sm uppercase rounded-full"
+            class="border border-slate-500 bg-sky-600 text-white shadow-md p-2 m-1 font-sans font-bold text-xs uppercase rounded-full"
             type="submit"
             value="Add"
         >
@@ -33,22 +33,22 @@ Bibliotheca Parva
     </form>
 </div>
 
-<table class="max-w-l table-fixed text-xs border border-slate-500 mt-5">
+<table class="table-fixed text-xs border border-slate-500 mt-5 w-full">
     <thead class="font-sans">
-        <tr>
+        <tr class="bg-sky-600 text-white">
             <th class="w-2/12 p-2 border border-slate-300">
                 ISBN
             </th>
             <th class="w-4/12 p-2 border border-slate-300">
                 Title
             </th>
-            <th class="w=4/12 p-2 border border-slate-300">
+            <th class="w-4/12 p-2 border border-slate-300">
                 Authors
             </th>
             <th class="w-1/12 p-2 border border-slate-300">
                 Location
             </th>
-            <th class="p-2 border border-slate-300"/>
+            <th class="w-1/12 p-2 border border-slate-300"/>
         </tr>
     </thead>
     <tbody id="search-results" hx-trigger="load" hx-get="/search">
