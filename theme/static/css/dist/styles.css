@@ -787,6 +787,10 @@ select {
   table-layout: fixed;
 }
 
+.cursor-pointer {
+  cursor: pointer;
+}
+
 .justify-between {
   justify-content: space-between;
 }
