@@ -153,61 +153,65 @@ class Book(models.Model):
             return False
         
     def fetch_libris_metadata(self):
-        data = requests.get('http://libris.kb.se/xsearch', {'query': f'NUMM:{self.isbn_13}', 'format': 'refworks', 'n': 1}).text
+        data = requests.get('http://libris.kb.se/xsearch', {'query': f'NUMM:{self.isbn_13}', 'format': 'refworks'}).text
         found = False
-        publishers = []
-        publish_places = []
-        author_names = []
-        editor_names = []
-        subjects = []
 
-        for claim in data.split('\r\n'):
-            if len(claim) < 4: continue
-            found = True
+        for book in data.split('\r\n\r\n'):
+            if f"SN {self.isbn_13}" in book:
+                found = True
 
-            key = claim[:2]
-            value = claim[3:]
+                publishers = []
+                publish_places = []
+                author_names = []
+                editor_names = []
+                subjects = []
 
-            if key == 'T1': # Primary Title
-                self.title = value
-            elif key == 'T2': # Secondary Title
-                self.subtitle = value
-            elif key == 'ED': # Edition
-                self.edition_name = value
-            elif key == 'AB': # Abstract
-                self.description = value
-            elif key == 'PB': # Publisher
-                publishers.append(value)
-            elif key == 'PP': # Place of Publication
-                publish_places.append(value)
-            elif key == 'YR': # Year of Publication
-                self.published_year = value
-            elif key == 'A1': # Author
-                author_names.append(" ".join(reversed(value.split(', '))))
-            elif key == 'A2': # Editor
-                editor_names.append(" ".join(reversed(value.split(', '))))
-            elif key == 'K1': # Keyword
-                subjects.append(value)
+                for claim in book.split('\r\n'):
+                    if len(claim) < 4: continue
 
-        if publishers:
-            self.published_by = ", ".join(publishers)
+                    key = claim[:2]
+                    value = claim[3:]
 
-        if publish_places:
-            self.published_place = ", ".join(publish_places)
+                    if key == 'T1': # Primary Title
+                        self.title = value
+                    elif key == 'T2': # Secondary Title
+                        self.subtitle = value
+                    elif key == 'ED': # Edition
+                        self.edition_name = value
+                    elif key == 'AB': # Abstract
+                        self.description = value
+                    elif key == 'PB': # Publisher
+                        publishers.append(value)
+                    elif key == 'PP': # Place of Publication
+                        publish_places.append(value)
+                    elif key == 'YR': # Year of Publication
+                        self.published_year = value
+                    elif key == 'A1': # Author
+                        author_names.append(" ".join(reversed(value.split(', '))))
+                    elif key == 'A2': # Editor
+                        editor_names.append(" ".join(reversed(value.split(', '))))
+                    elif key == 'K1': # Keyword
+                        subjects.append(value)
 
-        if author_names:
-            author_ids = [Person.objects.get_or_create(name=name)[0].id for name in author_names]
-            if not self.id: self.save()
-            self.authors.set(author_ids)
+                if publishers:
+                    self.published_by = ", ".join(publishers)
 
-        if editor_names:
-            editor_ids = [Person.objects.get_or_create(name=name)[0].id for name in editor_names]
-            if not self.id: self.save()
-            self.editors.set(editor_ids)
+                if publish_places:
+                    self.published_place = ", ".join(publish_places)
 
-        if subjects:
-            subject_ids = [Subject.objects.get_or_create(name=name)[0].id for name in subjects]
-            if not self.id: self.save()
-            self.subjects.set(subject_ids)
+                if author_names:
+                    author_ids = [Person.objects.get_or_create(name=name)[0].id for name in author_names]
+                    if not self.id: self.save()
+                    self.authors.set(author_ids)
+
+                if editor_names:
+                    editor_ids = [Person.objects.get_or_create(name=name)[0].id for name in editor_names]
+                    if not self.id: self.save()
+                    self.editors.set(editor_ids)
+
+                if subjects:
+                    subject_ids = [Subject.objects.get_or_create(name=name)[0].id for name in subjects]
+                    if not self.id: self.save()
+                    self.subjects.set(subject_ids)
 
         return found
