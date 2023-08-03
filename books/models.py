@@ -50,8 +50,16 @@ class Book(models.Model):
     location = models.ForeignKey(Location, on_delete=models.SET_NULL, blank=True, null=True)
 
     def __str__(self) -> str:
-        author_list = ", ".join([author.__str__() for author in self.authors.all()])
-        return f"{author_list}: {self.title} ({self.published_year})"
+        contributors = ", ".join(
+            [author.name for author in self.authors.all()] + 
+            [f"{editor.name} (ed.)" for editor in self.editors.all()]
+        )
+
+        edition = f" ({self.edition_name})" if self.edition_name else ""
+        place = f" {self.published_place}: " if self.published_place else " "
+        publisher = self.published_by if self.published_by else ""
+
+        return f"{contributors}. ({self.published_year}). {self.title}{edition}.{place}{publisher}"
     
     def clean(self) -> None:
         if self.isbn_13:
