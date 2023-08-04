@@ -37,6 +37,7 @@ class Book(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     title = models.CharField(max_length=512, blank=True, null=True)
     subtitle = models.CharField(max_length=512, blank=True, null=True)
+    original_title = models.CharField(max_length=512, blank=True, null=True)
     edition_name = models.CharField(max_length=512, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     isbn_10 = models.CharField(max_length=10, blank=True, null=True, validators=[validate_isbn_10, validate_canonical_isbn])
@@ -48,6 +49,7 @@ class Book(models.Model):
     editors = models.ManyToManyField(Person, related_name='editor_of', blank=True)
     illustrators = models.ManyToManyField(Person, related_name='illustrator_of', blank=True)
     translators = models.ManyToManyField(Person, related_name='translator_of', blank=True)
+    foreword_by = models.ManyToManyField(Person, related_name='foreword_by', blank=True)
     languages = ArrayField(
         models.CharField(max_length=3, validators=[validate_iso_639_pt3]),
         blank=True,
