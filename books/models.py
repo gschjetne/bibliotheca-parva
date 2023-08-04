@@ -166,41 +166,62 @@ class Book(models.Model):
         found = False
 
         for book in data.split('\r\n\r\n'):
-            if f"SN {self.isbn_13}" in book:
-                found = True
+            title = None
+            subtitle = None
+            edition_name = None
+            description = None
+            published_year = None
+            publishers = []
+            publish_places = []
+            author_names = []
+            editor_names = []
+            subjects = []
 
-                publishers = []
-                publish_places = []
-                author_names = []
-                editor_names = []
-                subjects = []
+            for claim in book.split('\r\n'):
+                if len(claim) < 4: continue
 
-                for claim in book.split('\r\n'):
-                    if len(claim) < 4: continue
+                key = claim[:2]
+                value = claim[3:]
 
-                    key = claim[:2]
-                    value = claim[3:]
+                if key == 'T1': # Primary Title
+                    title = value
+                elif key == 'T2': # Secondary Title
+                    subtitle = value
+                elif key == 'ED': # Edition
+                    edition_name = value
+                elif key == 'AB': # Abstract
+                    description = value
+                elif key == 'PB': # Publisher
+                    publishers.append(value)
+                elif key == 'PP': # Place of Publication
+                    publish_places.append(value)
+                elif key == 'YR': # Year of Publication
+                    published_year = value
+                elif key == 'A1': # Author
+                    author_names.append(" ".join(reversed(value.split(', '))))
+                elif key == 'A2': # Editor
+                    editor_names.append(" ".join(reversed(value.split(', '))))
+                elif key == 'K1': # Keyword
+                    subjects.append(value)
+                elif key == 'SN':
+                    found = to_isbn13(value) == self.isbn_13
 
-                    if key == 'T1': # Primary Title
-                        self.title = value
-                    elif key == 'T2': # Secondary Title
-                        self.subtitle = value
-                    elif key == 'ED': # Edition
-                        self.edition_name = value
-                    elif key == 'AB': # Abstract
-                        self.description = value
-                    elif key == 'PB': # Publisher
-                        publishers.append(value)
-                    elif key == 'PP': # Place of Publication
-                        publish_places.append(value)
-                    elif key == 'YR': # Year of Publication
-                        self.published_year = value
-                    elif key == 'A1': # Author
-                        author_names.append(" ".join(reversed(value.split(', '))))
-                    elif key == 'A2': # Editor
-                        editor_names.append(" ".join(reversed(value.split(', '))))
-                    elif key == 'K1': # Keyword
-                        subjects.append(value)
+
+            if found:
+                if title:
+                    self.title = title
+
+                if subtitle:
+                    self.subtitle = title
+
+                if edition_name:
+                    self.edition_name = edition_name
+
+                if description:
+                    self.description = description
+
+                if published_year:
+                    self.published_year = published_year
 
                 if publishers:
                     self.published_by = ", ".join(publishers)
@@ -222,5 +243,7 @@ class Book(models.Model):
                     subject_ids = [Subject.objects.get_or_create(name=name)[0].id for name in subjects]
                     if not self.id: self.save()
                     self.subjects.set(subject_ids)
+
+                break
 
         return found
