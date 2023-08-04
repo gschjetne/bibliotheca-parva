@@ -58,8 +58,9 @@ class Book(models.Model):
         edition = f" ({self.edition_name})" if self.edition_name else ""
         place = f" {self.published_place}: " if self.published_place else " "
         publisher = self.published_by if self.published_by else ""
+        subtitle = f": {self.subtitle}" if self.subtitle else ""
 
-        return f"{contributors}. ({self.published_year}). {self.title}{edition}.{place}{publisher}"
+        return f"{contributors}. ({self.published_year}). {self.title}{subtitle}{edition}.{place}{publisher}"
     
     def clean(self) -> None:
         if self.isbn_13:
