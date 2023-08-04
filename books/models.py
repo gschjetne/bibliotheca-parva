@@ -1,5 +1,6 @@
 import re
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
 from isbnlib import to_isbn10, to_isbn13
 import requests
 
@@ -47,7 +48,11 @@ class Book(models.Model):
     editors = models.ManyToManyField(Person, related_name='editor_of', blank=True)
     illustrators = models.ManyToManyField(Person, related_name='illustrator_of', blank=True)
     translators = models.ManyToManyField(Person, related_name='translator_of', blank=True)
-    language = models.CharField(max_length=3, blank=True, null=True, validators=[validate_iso_639_pt3])
+    languages = ArrayField(
+        models.CharField(max_length=3, validators=[validate_iso_639_pt3]),
+        blank=True,
+        null=True,
+    )
     subjects = models.ManyToManyField(Subject, blank=True)
     ol_id = models.CharField(max_length=512, blank=True, null=True)
     location = models.ForeignKey(Location, on_delete=models.SET_NULL, blank=True, null=True)
