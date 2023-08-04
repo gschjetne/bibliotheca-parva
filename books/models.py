@@ -3,7 +3,7 @@ from django.db import models
 from isbnlib import to_isbn10, to_isbn13
 import requests
 
-from books.validators import validate_canonical_isbn, validate_isbn_10, validate_isbn_13
+from books.validators import validate_canonical_isbn, validate_isbn_10, validate_isbn_13, validate_iso_639_pt3
 
 class Person(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
@@ -45,6 +45,9 @@ class Book(models.Model):
     published_year = models.IntegerField(blank=True, null=True)
     authors = models.ManyToManyField(Person, related_name='author_of', blank=True)
     editors = models.ManyToManyField(Person, related_name='editor_of', blank=True)
+    illustrators = models.ManyToManyField(Person, related_name='illustrator_of', blank=True)
+    translators = models.ManyToManyField(Person, related_name='translator_of', blank=True)
+    language = models.CharField(max_length=3, blank=True, null=True, validators=[validate_iso_639_pt3])
     subjects = models.ManyToManyField(Subject, blank=True)
     ol_id = models.CharField(max_length=512, blank=True, null=True)
     location = models.ForeignKey(Location, on_delete=models.SET_NULL, blank=True, null=True)
@@ -52,7 +55,9 @@ class Book(models.Model):
     def __str__(self) -> str:
         contributors = ", ".join(
             [author.name for author in self.authors.all()] + 
-            [f"{editor.name} (ed.)" for editor in self.editors.all()]
+            [f"{editor.name} (ed.)" for editor in self.editors.all()] +
+            [f"{illustrator.name} (ill.)" for illustrator in self.illustrators.all()] +
+            [f"{translator.name} (tr.)" for translator in self.translators.all()]
         )
 
         edition = f" ({self.edition_name})" if self.edition_name else ""
