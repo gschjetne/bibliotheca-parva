@@ -23,6 +23,21 @@ SET person_id = canonical_person_ids.canonical_id
 FROM canonical_person_ids
 WHERE books_book_editors.person_id = canonical_person_ids.id;
 
+UPDATE books_book_illustrators
+SET person_id = canonical_person_ids.canonical_id
+FROM canonical_person_ids
+WHERE books_book_illustrators.person_id = canonical_person_ids.id;
+
+UPDATE books_book_translators
+SET person_id = canonical_person_ids.canonical_id
+FROM canonical_person_ids
+WHERE books_book_translators.person_id = canonical_person_ids.id;
+
+UPDATE books_book_foreword_by
+SET person_id = canonical_person_ids.canonical_id
+FROM canonical_person_ids
+WHERE books_book_foreword_by.person_id = canonical_person_ids.id;
+
 DELETE FROM books_person
 USING canonical_person_ids
 WHERE books_person.id = canonical_person_ids.id;
