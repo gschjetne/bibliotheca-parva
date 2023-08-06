@@ -4,6 +4,7 @@ import isbnlib
 from .forms import NewFromIsbnForm
 from .models import Book
 from django.contrib.auth.decorators import login_required
+from iso639 import Lang
 
 @login_required
 def index(request):
@@ -30,14 +31,18 @@ def search(request):
     def to_dict(book):
         authors = [a.name for a in book.authors.all()]
         editors = [f"{e.name} (ed.)" for e in book.editors.all()]
+        illustrators = [f"{e.name} (ill.)" for e in book.illustrators.all()]
+        translators = [f"{e.name} (tr.)" for e in book.translators.all()]
+        languages = [Lang(pt3).name for pt3 in book.languages] if book.languages else []
 
         return {
             'id': book.id,
             'isbn': isbnlib.mask(book.isbn_13) if book.isbn_13 else '',
             'title': book.title if book.title else 'Missing Title',
             'subtitle': book.subtitle if book.subtitle else '',
-            'authors': ', '.join(authors + editors),
+            'contributors': ', '.join(authors + editors + illustrators + translators),
             'location': book.location.name if book.location else None,
+            'languages': ', '.join(languages),
         }
 
     query = request.GET['query'] if 'query' in request.GET else None
