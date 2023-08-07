@@ -123,7 +123,8 @@ class Book(models.Model):
             if 'description' in ol: self.description = ol['description']['value']
             if 'publisher' in ol: self.published_by = ", ".join(ol['publisher'])
             if 'publish_places' in ol: self.published_place = ", ".join(ol['publish_places'])
-            if 'publish_date' in ol: self.published_year = re.search('\d{4}', ol['publish_date']).group(0)
+            find_year = re.search('\d{4}', ol['publish_date']) if 'publish_date' in ol else None
+            if find_year in ol: self.published_year = find_year.group(0)
             self.ol_id = ol['key']
             return True
         else:
