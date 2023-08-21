@@ -7,20 +7,22 @@ Bibliotheca Parva
 {% block body %}
 
 <div class="flex justify-between">
-    <input 
-        class="border border-slate-500 shadow-inner rounded-full w-80 text-xs"
-        type="search"
-        name="query"
-        placeholder="Search"
-        hx-get="/search"
-        hx-trigger="keyup changed delay:100ms, search"
-        hx-target="#search-results"
-    />
+    <div>
+        <input
+            class="border border-slate-500 shadow-inner rounded-full w-80 text-xs p-2 m-1"
+            type="search"
+            name="query"
+            placeholder="Search"
+            hx-get="/search"
+            hx-trigger="keyup changed delay:100ms, search"
+            hx-target="#search-results"
+        />
+    </div>
 
     <form method="post">
         {% csrf_token %}
         <input
-            class="border border-slate-500 shadow-inner rounded-full text-xs"
+            class="border border-slate-500 shadow-inner rounded-full text-xs p-2 m-1"
             name="isbn"
             placeholder="ISBN"
         />

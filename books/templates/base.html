@@ -1,20 +1,5 @@
 {% load django_htmx %}
 {% load static %}
-
-{% comment %} <!DOCTYPE html>
-<html>
-    <head>
-        <title>
-            {% block title %}{% endblock title %}
-        </title>
-    </head>
-    <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-        {% block body %}{% endblock body %}
-        <script src="{% static 'js/htmx.min.js' %}" defer></script>
-        {% django_htmx_script %}
-    </body>
-</html> {% endcomment %}
-
 {% load django_htmx %}
 {% load static %}
 {% load static tailwind_tags %}
