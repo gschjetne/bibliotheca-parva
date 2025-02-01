@@ -37,7 +37,7 @@ def search(request):
 
         return {
             'id': book.id,
-            'isbn': isbnlib.mask(book.isbn_13) if book.isbn_13 else '',
+            'isbn': isbnlib.mask(book.isbn_13) if book.isbn_13 else 'N/A',
             'title': book.title if book.title else 'Missing Title',
             'subtitle': book.subtitle if book.subtitle else '',
             'contributors': ', '.join(authors + editors + illustrators + translators),
@@ -50,12 +50,16 @@ def search(request):
     books = []
 
     if query:
-        by_title = Book.objects.filter(title__icontains=query)
-        by_subtitle = Book.objects.filter(subtitle__icontains=query)
-        by_isbn_13 = Book.objects.filter(isbn_13__startswith=query)
-        by_isbn_10 = Book.objects.filter(isbn_10__startswith=query)
+        filter = Book.objects.filter(title__icontains=query) |\
+            Book.objects.filter(subtitle__icontains=query) |\
+            Book.objects.filter(authors__name__icontains=query) |\
+            Book.objects.filter(editors__name__icontains=query) |\
+            Book.objects.filter(illustrators__name__icontains=query) |\
+            Book.objects.filter(translators__name__icontains=query) |\
+            Book.objects.filter(isbn_13__startswith=query) |\
+            Book.objects.filter(isbn_10__startswith=query)
 
-        books = (by_title | by_subtitle | by_isbn_13 | by_isbn_10).order_by('title')[:50]
+        books = filter.order_by('title').distinct()[:50]
 
     template = loader.get_template("search.html")
     return HttpResponse(template.render({'books': map(to_dict, books)}, request))
