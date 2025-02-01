@@ -1,8 +1,9 @@
-Django==4.2.3
+Django==4.2.18
 isbnlib==3.10.14
-django-htmx==1.16.0
-django-tailwind==3.6.0
-django-browser-reload==1.11.0
-requests==2.31.0
-psycopg2==2.9.6
-iso639-lang==2.1.0
+django-htmx==1.21.0
+django-tailwind==3.8.0
+django-browser-reload==1.17.0
+django-extensions==3.2.3
+requests==2.32.3
+psycopg2==2.9.10
+iso639-lang==2.5.1
