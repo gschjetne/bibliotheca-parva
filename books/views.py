@@ -1,6 +1,5 @@
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template import loader
-import isbnlib
 from .forms import NewFromIsbnForm
 from .models import Book
 from django.contrib.auth.decorators import login_required
@@ -37,7 +36,6 @@ def search(request):
 
         return {
             'id': book.id,
-            'isbn': isbnlib.mask(book.isbn_13) if book.isbn_13 else 'N/A',
             'title': book.title if book.title else 'Missing Title',
             'subtitle': book.subtitle if book.subtitle else '',
             'contributors': ', '.join(authors + editors + illustrators + translators),
