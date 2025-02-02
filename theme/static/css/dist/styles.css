@@ -763,6 +763,10 @@ select {
   display: table;
 }
 
+.h-screen {
+  height: 100vh;
+}
+
 .w-1\/12 {
   width: 8.333333%;
 }
@@ -783,12 +787,28 @@ select {
   width: 100%;
 }
 
+.shrink {
+  flex-shrink: 1;
+}
+
 .table-fixed {
   table-layout: fixed;
 }
 
 .cursor-pointer {
   cursor: pointer;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-center {
+  justify-content: center;
 }
 
 .justify-between {
@@ -850,6 +870,11 @@ select {
 .text-xs {
   font-size: 0.75rem;
   line-height: 1rem;
+}
+
+.text-lg {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
 }
 
 .font-bold {
