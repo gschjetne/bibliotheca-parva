@@ -787,10 +787,6 @@ select {
   width: 100%;
 }
 
-.shrink {
-  flex-shrink: 1;
-}
-
 .table-fixed {
   table-layout: fixed;
 }
@@ -867,14 +863,14 @@ select {
   font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 }
 
-.text-xs {
-  font-size: 0.75rem;
-  line-height: 1rem;
-}
-
 .text-lg {
   font-size: 1.125rem;
   line-height: 1.75rem;
+}
+
+.text-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
 }
 
 .font-bold {

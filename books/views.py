@@ -4,6 +4,7 @@ from .forms import NewFromIsbnForm
 from .models import Book
 from django.contrib.auth.decorators import login_required
 from iso639 import Lang
+import isbnlib
 
 @login_required
 def index(request):
