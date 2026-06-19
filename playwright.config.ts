@@ -18,10 +18,9 @@ export default defineConfig({
 	use: { baseURL: 'http://localhost:4173' },
 	projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 	webServer: {
-		// `npm run gen` (wrangler types) re-normalises worker-configuration.d.ts,
-		// which `wrangler dev` rewrites on shutdown — otherwise the next run's
-		// `wrangler types --check` in `build` fails as "out of date".
-		command: 'npm run gen && npm run build && npm run preview',
+		// `build` regenerates worker-configuration.d.ts (wrangler types) then
+		// builds the Worker that `preview` serves.
+		command: 'npm run build && npm run preview',
 		port: 4173,
 		reuseExistingServer: true,
 		timeout: 180_000
