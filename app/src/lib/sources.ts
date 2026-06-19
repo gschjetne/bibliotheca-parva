@@ -30,3 +30,19 @@ export function fetchSources(
 			.catch(() => onUpdate(p.name, { status: 'error', candidate: null }));
 	});
 }
+
+/**
+ * A source's value for a record field: `display` for the cell, `copy` for what
+ * lands in the record input when the cell is clicked (lists are comma-joined to
+ * show, newline-joined to copy). Returns null if the source has nothing.
+ */
+export function candidateField(
+	c: Candidate,
+	key: string
+): { display: string; copy: string } | null {
+	const v = (c as Record<string, unknown>)[key];
+	if (v == null) return null;
+	if (Array.isArray(v)) return v.length ? { display: v.join(', '), copy: v.join('\n') } : null;
+	const s = String(v);
+	return s ? { display: s, copy: s } : null;
+}

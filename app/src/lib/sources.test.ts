@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fetchSources, type SourceState } from './sources';
+import { fetchSources, candidateField, type SourceState } from './sources';
 
 const ISBN = '9780261103573';
 
@@ -54,5 +54,25 @@ describe('fetchSources (progressive, per-source)', () => {
 		expect(states['Libris'].status).toBe('error');
 		expect(states['Open Library'].status).toBe('done');
 		expect(states['Bibbi'].status).toBe('done');
+	});
+});
+
+describe('candidateField', () => {
+	it('returns display and copy for a scalar', () => {
+		expect(candidateField({ source: 'X', title: 'The Two Towers' }, 'title')).toEqual({
+			display: 'The Two Towers',
+			copy: 'The Two Towers'
+		});
+	});
+	it('joins lists with comma to show, newline to copy', () => {
+		expect(candidateField({ source: 'X', authors: ['A. One', 'B. Two'] }, 'authors')).toEqual({
+			display: 'A. One, B. Two',
+			copy: 'A. One\nB. Two'
+		});
+	});
+	it('returns null when the source has nothing for the field', () => {
+		expect(candidateField({ source: 'X' }, 'title')).toBeNull();
+		expect(candidateField({ source: 'X', authors: [] }, 'authors')).toBeNull();
+		expect(candidateField({ source: 'X', title: 'T' }, 'original_title')).toBeNull();
 	});
 });
