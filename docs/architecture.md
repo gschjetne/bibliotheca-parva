@@ -25,6 +25,7 @@ running container is wasteful for this usage. Goals:
 | Auth | **Cloudflare Access** (Zero Trust) in front of the Worker |
 | Static assets | **Workers Static Assets** |
 | ISBN metadata | **Parallel `fetch()` fan-out** → review screen → save |
+| Infra / IaC | **Wrangler config + migrations in git**; one-time Access/DNS in a runbook (no Terraform) |
 
 ### Compute: Workers (free plan)
 
@@ -129,6 +130,20 @@ decision).
 - Deploy with `wrangler deploy`. Named environments for any staging split.
 - Cron Triggers (`triggers.crons` + a `scheduled()` handler) are available if we
   later want periodic metadata refresh — noted for phase 5, not used at parity.
+
+### Infrastructure as code
+
+`wrangler.jsonc` (Worker, D1 bindings, static assets, cron) plus the versioned
+`wrangler d1 migrations` are the source of truth, all in git — that already
+covers ~80% of the infrastructure declaratively. The two pieces wrangler does
+not manage — the **Cloudflare Access application + allow-list policy** and
+**DNS / custom domain** — are one-time setup steps captured in `docs/runbook.md`
+(written in phase 4, when the real resource names exist) rather than codified in
+Terraform. Terraform was considered and rejected for now: it would add a second
+toolchain, a state backend, and provider churn for little benefit at
+single-household scale. If edge-config reproducibility ever matters, the
+intended path is a small Terraform module covering **only** Access + DNS, never
+the Worker/D1 (which wrangler manages better).
 
 ## Deferred to later phases
 
