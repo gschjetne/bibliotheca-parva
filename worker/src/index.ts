@@ -1,6 +1,10 @@
 import { Hono } from "hono";
 import { searchBooks } from "./db";
-import { searchPage, resultRows } from "./views";
+import { createBook } from "./mutate";
+import { parseBookForm } from "./review";
+import { gatherCandidates } from "./providers";
+import { isValidIsbn, toIsbn13 } from "./isbn";
+import { searchPage, resultRows, reviewForm } from "./views";
 
 export type Bindings = {
   DB: D1Database;
@@ -57,9 +61,33 @@ app.get("/search", async (c) => {
   return c.html(resultRows(books));
 });
 
-// Placeholder — the edit screen arrives in a later iteration.
+// Add by ISBN: validate, fan out to every provider in parallel, show the
+// field-by-field review screen. Triggered by the home-page ISBN field.
+app.post("/lookup", async (c) => {
+  const body = await c.req.parseBody();
+  const raw = (body["isbn"] ?? "").toString().trim();
+  if (!isValidIsbn(raw)) {
+    return c.html(searchPage(`"${raw}" is not a valid ISBN.`));
+  }
+  const isbn13 = toIsbn13(raw)!;
+  const candidates = await gatherCandidates(isbn13, fetch);
+  return c.html(reviewForm(candidates, isbn13));
+});
+
+// Add without an ISBN: a blank review screen.
+app.get("/add", (c) => c.html(reviewForm([], null)));
+
+// Save a new book from the review screen.
+app.post("/books", async (c) => {
+  const body = await c.req.parseBody();
+  const input = parseBookForm((k) => body[k]?.toString());
+  const id = await createBook(c.env.DB, input);
+  return c.redirect(`/books/${id}/edit`, 303);
+});
+
+// Placeholder — the edit screen arrives in the next iteration.
 app.get("/books/:id/edit", (c) =>
-  c.html(`<p>Editing book ${c.req.param("id")} — coming soon.</p>`),
+  c.html(`<p>Book ${c.req.param("id")} saved. Edit screen coming soon. <a href="/">home</a></p>`),
 );
 
 export default app;
