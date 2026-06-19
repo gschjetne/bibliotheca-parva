@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { isValidIsbn } from '$lib/isbn';
+
 	type ResultBook = {
 		id: number;
 		title: string | null;
@@ -9,6 +12,24 @@
 	};
 
 	let query = $state('');
+	let isbn = $state('');
+	let isbnError = $state('');
+
+	// Add-by-ISBN from the home page (as in the old app): blank -> add by hand;
+	// invalid -> show an error here; valid -> the review screen, which looks it up.
+	function add(e: SubmitEvent) {
+		e.preventDefault();
+		const raw = isbn.trim();
+		if (!raw) {
+			goto('/add');
+			return;
+		}
+		if (!isValidIsbn(raw)) {
+			isbnError = `"${raw}" is not a valid ISBN.`;
+			return;
+		}
+		goto(`/add?isbn=${encodeURIComponent(raw)}`);
+	}
 	let results = $state<ResultBook[]>([]);
 	let timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -34,11 +55,19 @@
 		placeholder="Search"
 		bind:value={query}
 	/>
-	<a
-		href="/add"
-		class="border border-slate-500 bg-sky-600 text-white shadow-md p-2 m-1 font-sans font-bold text-xs uppercase rounded-full"
-		>Add a book</a
-	>
+	<form onsubmit={add}>
+		<input
+			class="border border-slate-500 shadow-inner rounded-full text-xs p-2 m-1"
+			placeholder="ISBN"
+			bind:value={isbn}
+			oninput={() => (isbnError = '')}
+		/>
+		<button
+			class="border border-slate-500 bg-sky-600 text-white shadow-md p-2 m-1 font-sans font-bold text-xs uppercase rounded-full cursor-pointer"
+			type="submit">Add</button
+		>
+		{#if isbnError}<span class="text-xs text-red-600">{isbnError}</span>{/if}
+	</form>
 </div>
 
 <table class="table-fixed text-xs border border-slate-500 mt-5 w-full shadow-md">

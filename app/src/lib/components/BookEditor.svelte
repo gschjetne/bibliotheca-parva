@@ -27,7 +27,8 @@
 	};
 	type Contributor = { name: string; personId?: number };
 
-	let { book = null }: { book?: EditorBook | null } = $props();
+	let { book = null, initialIsbn = '' }: { book?: EditorBook | null; initialIsbn?: string } =
+		$props();
 	// One-time snapshot for initial state. The edit page remounts (via {#key})
 	// when the book id changes, so this is re-snapshotted per book.
 	const init = untrack(() => book);
@@ -53,7 +54,9 @@
 		{ label: 'Description', widget: 'textarea', cand: 'description', key: 'description' }
 	];
 
-	let isbn = $state(init?.isbn_13 ?? init?.isbn_10 ?? '');
+	// Pre-filled from the book being edited, or from the home-page Add form
+	// (/add?isbn=…); a non-empty value auto-runs the lookup onMount.
+	let isbn = $state(init?.isbn_13 ?? init?.isbn_10 ?? untrack(() => initialIsbn));
 	let error = $state('');
 	let looked = $state(false);
 	let states = $state<Record<string, SourceState>>({});
