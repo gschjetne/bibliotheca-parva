@@ -22,15 +22,16 @@ running container is wasteful for this usage. Goals:
 | Web framework | **Hono**, server-rendered HTML + HTMX (no SPA) |
 | Persistence | **D1** (SQLite) |
 | Search | **FTS5** full-text index, accent-folded |
-| Auth | **Self-hosted** username + password, tuned PBKDF2, signed-cookie session |
+| Auth | **Cloudflare Access** (Zero Trust) in front of the Worker |
 | Static assets | **Workers Static Assets** |
 | ISBN metadata | **Parallel `fetch()` fan-out** → review screen → save |
 
 ### Compute: Workers (free plan)
 
 Per-request billing, genuine scale-to-zero, negligible cold start. The free
-plan's limits are all comfortable for this app **except** the ~10 ms CPU budget
-per request — see Auth.
+plan's limits are all comfortable for this app. The one limit that needed care —
+the ~10 ms CPU budget per request — is a non-issue now that auth (the only
+CPU-heavy step) lives in Cloudflare Access rather than in the Worker.
 
 ### Web framework: Hono, server-rendered
 
@@ -66,24 +67,26 @@ rather than a nicety:
   of searchable text and index it with FTS5, kept in sync via triggers (or on
   write from the app).
 
-### Auth: self-hosted password, tuned PBKDF2, signed-cookie session
+### Auth: Cloudflare Access (Zero Trust)
 
-Closest to the current Django behaviour and keeps everything in-app and free.
-The constraint: the free plan's ~10 ms CPU limit (CPU, not wall-clock) cannot
-fit OWASP-strength password hashing. Approach:
+The whole app is registered as a self-hosted Access application and gated at the
+edge by identity (email OTP, Google, etc.). Requests are authenticated **before**
+they reach the Worker, so the app holds no passwords, no session store, and no
+login screen — and the free-plan CPU limit is never tested by hashing. The
+household's authorised identities are an Access allow-list policy; adding or
+removing a person is a policy change, not a schema change. Free for up to 50
+seats, which a single household never approaches.
 
-- **PBKDF2 via Web Crypto `SubtleCrypto`**, iteration count tuned to run
-  comfortably under the free CPU budget (Web Crypto has no bcrypt/scrypt).
-- **`crypto.subtle.timingSafeEqual`** for constant-time hash comparison.
-- **Login rate-limiting** to offset the reduced iteration count.
-- **Stateless signed session cookie** (HttpOnly, Secure, SameSite=Lax;
-  HMAC-signed via Web Crypto — microseconds of CPU), so hashing happens only at
-  login and every other request stays near-zero CPU.
+The Worker still **verifies the Access JWT** (`Cf-Access-Jwt-Assertion`) on every
+request as defence in depth, so it refuses anything that reaches it without a
+valid Access identity (e.g. if the Worker URL is hit directly, bypassing the
+protected hostname). The app reads the authenticated user's identity from the
+verified token when it needs to know who is acting.
 
-Trade-off accepted for a single-household private app. Escape hatches if it ever
-matters: Workers Paid ($5/mo → 30 s CPU → full-strength hashing), or front the
-app with Cloudflare Access (no in-app auth code at all). Users live in a D1
-table; passwords are never stored in plaintext.
+Consequences: **no `users` table and no auth code to maintain** — a net
+reduction in moving parts. Escape hatch if we ever want in-app passwords
+instead: self-hosted PBKDF2 via Web Crypto with iteration count tuned to the
+free CPU budget (or Workers Paid for full-strength hashing).
 
 ### Static assets: Workers Static Assets
 
@@ -131,7 +134,7 @@ decision).
 
 - **Phase 3** — the simplified D1 schema (collapsing the over-modelled
   Person/Location/Subject entities and 5 role M2Ms; the production dump shows
-  Location was never used).
+  Location was never used). No `users`/auth tables — identity comes from Access.
 - **Phase 4** — implementation to parity, plus importing the dump and diffing
   old vs new behaviour over real data.
 
@@ -142,4 +145,5 @@ decision).
 - Workers limits (CPU, subrequests): https://developers.cloudflare.com/workers/platform/limits/
 - Static assets: https://developers.cloudflare.com/workers/static-assets/
 - Web Crypto / hashing: https://developers.cloudflare.com/workers/runtime-apis/web-crypto/
+- Cloudflare Access (self-hosted app + JWT validation): https://developers.cloudflare.com/cloudflare-one/identity/authorization-cookie/validating-json/
 - Hono on Workers: https://developers.cloudflare.com/workers/framework-guides/web-apps/more-web-frameworks/hono/
