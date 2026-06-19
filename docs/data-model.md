@@ -20,6 +20,25 @@ See `docs/architecture.md` for the platform decisions and
 | `created_at`/`updated_at` everywhere | dropped | nothing reads them |
 | `Subject` + `book_subjects` | `subject` + `book_subject` (unchanged shape) | kept as a tag; ready for browse-by-subject later |
 
+## Shelving (future — not fully thought out)
+
+For now, where a book lives is a single free-text field, `book.shelf_location`.
+This is deliberately a placeholder and needs fleshing out later.
+
+The real structure is almost certainly **hierarchical** — e.g.
+house → floor → room → bookcase → shelf. A pragmatic interim convention is to
+write the location as a filesystem-style path in the free-text field
+(e.g. `home/attic/study/north-wall/shelf-3`), which keeps the column simple
+while hinting at the hierarchy and staying greppable/sortable.
+
+When we revisit this we should decide between: keeping the path string (with a
+documented convention and maybe validation), or promoting it to a proper nested
+structure (a `location` tree table with parent references, or a closure/path
+table) so locations can be browsed, reused across books, and renamed in one
+place. Deferred until the catalogue's shelving needs are clearer; no acceptance
+test pins the internal representation, only that a book's shelf location can be
+recorded and shown.
+
 ## Person identity (authority control)
 
 Three concepts the old model conflated into `Person.name`:
@@ -80,7 +99,7 @@ CREATE TABLE book (
     published_place TEXT,
     published_year  INTEGER,
     languages       TEXT,                 -- JSON array of ISO codes, e.g. '["eng"]'
-    shelf_location  TEXT,                 -- replaces the Location entity
+    shelf_location  TEXT,                 -- free text for now; see "Shelving (future)"
     ol_key          TEXT                  -- OpenLibrary work/edition key (re-fetch)
 );
 CREATE INDEX book_isbn_13 ON book(isbn_13);
