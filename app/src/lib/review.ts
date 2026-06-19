@@ -3,7 +3,8 @@
 // see test/review.test.ts. DB writes live in mutate.ts.
 import type { Candidate } from "./providers";
 
-export type ContributorInput = { name: string; role: string };
+// `personId` set => link to that existing identity; absent => create a new person.
+export type ContributorInput = { name: string; role: string; personId?: number };
 
 export type BookInput = {
   title: string | null;

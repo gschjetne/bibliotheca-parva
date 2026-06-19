@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getPlatformProxy } from 'wrangler';
 import { readFileSync, rmSync } from 'node:fs';
 import { createBook } from './mutate';
-import { searchBooks } from './db';
+import { searchBooks, suggestContributors } from './db';
 import type { BookInput } from '../review';
 
 // Integration test for the search-over-D1 path against a real (local, isolated)
@@ -53,5 +53,44 @@ describe('searchBooks over D1', () => {
 		await createBook(db, blank({ title: 'The Fellowship of the Ring', isbn: '0261103571' }));
 		const byIsbn13 = await searchBooks(db, '9780261103573');
 		expect(byIsbn13.map((b) => b.title)).toContain('The Fellowship of the Ring');
+	});
+});
+
+describe('contributor identity', () => {
+	async function personIdsNamed(name: string): Promise<number[]> {
+		const r = await db
+			.prepare('SELECT id FROM person WHERE display_name = ? ORDER BY id')
+			.bind(name)
+			.all<{ id: number }>();
+		return r.results.map((x) => x.id);
+	}
+
+	it('links an existing person instead of creating a duplicate', async () => {
+		const NAME = 'Italo Calvino';
+		await createBook(db, blank({ title: 'Invisible Cities', contributors: [{ name: NAME, role: 'author' }] }));
+		const [personId] = await personIdsNamed(NAME);
+		expect(personId).toBeGreaterThan(0);
+
+		// Suggestion finds the existing person…
+		const suggestions = await suggestContributors(db, 'calvi');
+		expect(suggestions).toContainEqual({ id: personId, name: NAME });
+
+		// …and adding it to another book links the same identity, no duplicate.
+		await createBook(db, blank({
+			title: 'If on a winter’s night a traveler',
+			contributors: [{ name: NAME, role: 'author', personId }]
+		}));
+		expect(await personIdsNamed(NAME)).toEqual([personId]); // still exactly one person
+
+		const both = await db
+			.prepare('SELECT COUNT(*) AS n FROM contribution WHERE person_id = ?')
+			.bind(personId)
+			.first<{ n: number }>();
+		expect(both?.n).toBe(2);
+	});
+
+	it('creates a new person for an unmatched name', async () => {
+		await createBook(db, blank({ title: 'X', contributors: [{ name: 'A Brand New Author', role: 'author' }] }));
+		expect((await personIdsNamed('A Brand New Author')).length).toBe(1);
 	});
 });

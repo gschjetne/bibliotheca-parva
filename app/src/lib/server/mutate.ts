@@ -62,18 +62,23 @@ async function insertContributors(
 ) {
   let position = 0;
   for (const ct of contributors) {
-    const pr = await db
-      .prepare(`INSERT INTO person (display_name) VALUES (?)`)
-      .bind(ct.name)
-      .run();
-    const personId = pr.meta.last_row_id as number;
-    await db
-      .prepare(
-        `INSERT INTO name_form (person_id, text, text_folded, source)
-         VALUES (?,?,?,'book')`,
-      )
-      .bind(personId, ct.name, fold(ct.name))
-      .run();
+    // Link to an existing identity when chosen from the suggestions; otherwise
+    // mint a fresh person + name_form. (Cluster/merge of look-alikes is later.)
+    let personId = ct.personId ?? null;
+    if (personId === null) {
+      const pr = await db
+        .prepare(`INSERT INTO person (display_name) VALUES (?)`)
+        .bind(ct.name)
+        .run();
+      personId = pr.meta.last_row_id as number;
+      await db
+        .prepare(
+          `INSERT INTO name_form (person_id, text, text_folded, source)
+           VALUES (?,?,?,'book')`,
+        )
+        .bind(personId, ct.name, fold(ct.name))
+        .run();
+    }
     await db
       .prepare(
         `INSERT INTO contribution (book_id, person_id, name_as_printed, role, position)

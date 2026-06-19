@@ -5,6 +5,29 @@ import {
   formatLanguages,
   type Contribution,
 } from "../search";
+import { fold } from "../fold";
+
+export type PersonSuggestion = { id: number; name: string };
+
+/** Existing people whose any name form matches `query`, for the contributor autocomplete. */
+export async function suggestContributors(
+  db: D1Database,
+  query: string,
+  limit = 10,
+): Promise<PersonSuggestion[]> {
+  const q = fold(query);
+  if (!q) return [];
+  const r = await db
+    .prepare(
+      `SELECT p.id AS id, p.display_name AS name
+       FROM person p JOIN name_form nf ON nf.person_id = p.id
+       WHERE nf.text_folded LIKE ?1
+       GROUP BY p.id ORDER BY p.display_name LIMIT ?2`,
+    )
+    .bind(`%${q}%`, limit)
+    .all<PersonSuggestion>();
+  return r.results;
+}
 
 export type ResultBook = {
   id: number;
