@@ -5,6 +5,7 @@ import { parseBookForm } from "./review";
 import { gatherCandidates } from "./providers";
 import { isValidIsbn, toIsbn13 } from "./isbn";
 import { searchPage, resultRows, reviewForm, editForm } from "./views";
+import { verifyAccessJwt, type AccessIdentity } from "./access";
 
 export type Bindings = {
   DB: D1Database;
@@ -14,42 +15,31 @@ export type Bindings = {
   ACCESS_BYPASS?: string;
 };
 
-type Identity = { email: string };
-
-const app = new Hono<{ Bindings: Bindings; Variables: { identity: Identity } }>();
+const app = new Hono<{ Bindings: Bindings; Variables: { identity: AccessIdentity } }>();
 
 // --- Cloudflare Access gate (defence in depth) -----------------------------
-// In production the app sits behind Access, which authenticates before the
-// request reaches us. We still check the Access JWT here so a direct hit on the
-// Worker URL (bypassing the protected hostname) is refused.
-//
-// TODO(phase 4): full RS256 verification against the team JWKS
-//   https://<ACCESS_TEAM_DOMAIN>/cdn-cgi/access/certs  + audience (AUD) check.
-// Until then we decode (do not verify) the identity. Local dev bypasses with
-// ACCESS_BYPASS=true.
+// The app sits behind Access, which authenticates before the request reaches
+// us. We still verify the Access JWT (RS256 against the team JWKS + issuer/
+// audience/expiry) so a request that reaches the Worker directly — bypassing the
+// Access-protected hostname — is refused. Local dev bypasses with
+// ACCESS_BYPASS=true (see .dev.vars).
 app.use("*", async (c, next) => {
   if (c.env.ACCESS_BYPASS === "true") {
-    c.set("identity", { email: "dev@localhost" });
+    c.set("identity", { email: "dev@localhost", sub: "dev" });
     return next();
   }
   const token = c.req.header("Cf-Access-Jwt-Assertion");
-  const identity = token ? decodeIdentity(token) : null;
+  const { ACCESS_TEAM_DOMAIN, ACCESS_AUD } = c.env;
+  if (!token || !ACCESS_TEAM_DOMAIN || !ACCESS_AUD) return c.text("Forbidden", 403);
+  const identity = await verifyAccessJwt(token, {
+    teamDomain: ACCESS_TEAM_DOMAIN,
+    aud: ACCESS_AUD,
+    fetch,
+  });
   if (!identity) return c.text("Forbidden", 403);
   c.set("identity", identity);
   return next();
 });
-
-function decodeIdentity(jwt: string): Identity | null {
-  const parts = jwt.split(".");
-  if (parts.length !== 3) return null;
-  try {
-    const json = atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
-    const payload = JSON.parse(json) as { email?: unknown };
-    return typeof payload.email === "string" ? { email: payload.email } : null;
-  } catch {
-    return null;
-  }
-}
 
 app.get("/health", (c) => c.json({ ok: true }));
 

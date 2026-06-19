@@ -26,6 +26,10 @@
   "observability": { "enabled": true },
   "vars": {
     // Set to "true" only for local dev to bypass the Access gate.
-    "ACCESS_BYPASS": "false"
+    "ACCESS_BYPASS": "false",
+    // Set before deploying (see docs/runbook.md): the Zero Trust team domain
+    // (e.g. "myteam.cloudflareaccess.com") and the Access application's AUD tag.
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": ""
   }
 }

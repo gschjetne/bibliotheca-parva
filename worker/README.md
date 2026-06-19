@@ -35,15 +35,15 @@ npm run dev              # wrangler dev (set ACCESS_BYPASS=true locally)
 
 ## Status
 
-Bootstrap skeleton: schema, dump import, ISBN + folding utilities (unit-tested),
-and an Access-gated Hono app that boots. Search / add-by-ISBN / edit routes and
-the Cucumber acceptance-test wiring arrive during iteration.
+Feature-complete for parity: live search (FTS + ISBN), add-by-ISBN (multi-source
+field picker), manual add, edit, and delete — all against D1, with the FTS index
+kept in sync on every write. Auth is full Cloudflare Access JWT verification
+(RS256 against the team JWKS + issuer/audience/expiry), fail-closed, with
+`ACCESS_BYPASS=true` for local dev. 54 unit tests.
 
-## Not yet done (tracked for iteration)
+Remaining before deploy:
 
-- Full Access JWT verification (RS256 against the team JWKS + AUD) — currently
-  decode-only with a `TODO`; `ACCESS_BYPASS=true` for local dev.
-- Replace the placeholder `database_id` in `wrangler.jsonc` with the real id
-  from `wrangler d1 create` before deploying (runbook, phase 4).
-- FTS triggers to keep `book_fts` in sync on writes (the import populates it
-  directly for now).
+- Wire the `features/*.feature` acceptance tests to a runner against the Worker.
+- Set `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD`, and replace the placeholder
+  `database_id` in `wrangler.jsonc` with the real id from `wrangler d1 create`
+  (see the runbook, phase 4).
