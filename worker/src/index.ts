@@ -8,7 +8,7 @@ import { searchPage, resultRows, reviewForm, editForm } from "./views";
 import { verifyAccessJwt, type AccessIdentity } from "./access";
 
 export type Bindings = {
-  DB: D1Database;
+  bibliotheca_parva: D1Database;
   ASSETS: Fetcher;
   ACCESS_TEAM_DOMAIN?: string;
   ACCESS_AUD?: string;
@@ -47,7 +47,7 @@ app.get("/", (c) => c.html(searchPage()));
 
 // HTMX endpoint: returns the result rows for the catalogue search box.
 app.get("/search", async (c) => {
-  const books = await searchBooks(c.env.DB, c.req.query("query") ?? "");
+  const books = await searchBooks(c.env.bibliotheca_parva, c.req.query("query") ?? "");
   return c.html(resultRows(books));
 });
 
@@ -72,14 +72,14 @@ app.get("/add", (c) => c.html(reviewForm([], null)));
 app.post("/books", async (c) => {
   const body = await c.req.parseBody();
   const input = parseBookForm((k) => body[k]?.toString());
-  const id = await createBook(c.env.DB, input);
+  const id = await createBook(c.env.bibliotheca_parva, input);
   return c.redirect(`/books/${id}/edit`, 303);
 });
 
 // Edit an existing book.
 app.get("/books/:id/edit", async (c) => {
   const id = Number(c.req.param("id"));
-  const book = await getBookForEdit(c.env.DB, id);
+  const book = await getBookForEdit(c.env.bibliotheca_parva, id);
   if (!book) return c.notFound();
   return c.html(editForm(book));
 });
@@ -88,12 +88,12 @@ app.post("/books/:id", async (c) => {
   const id = Number(c.req.param("id"));
   const body = await c.req.parseBody();
   const input = parseBookForm((k) => body[k]?.toString());
-  await updateBook(c.env.DB, id, input);
+  await updateBook(c.env.bibliotheca_parva, id, input);
   return c.redirect(`/books/${id}/edit`, 303);
 });
 
 app.post("/books/:id/delete", async (c) => {
-  await deleteBook(c.env.DB, Number(c.req.param("id")));
+  await deleteBook(c.env.bibliotheca_parva, Number(c.req.param("id")));
   return c.redirect("/", 303);
 });
 

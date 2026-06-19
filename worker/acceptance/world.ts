@@ -52,7 +52,7 @@ BeforeAll(async () => {
   // Strip line comments first (one contains a ';'), then split into statements.
   const sql = readFileSync("migrations/0001_init.sql", "utf8").replace(/--[^\n]*/g, "");
   for (const stmt of sql.split(";").map((s) => s.trim()).filter(Boolean)) {
-    await proxy.env.DB.prepare(stmt).run();
+    await proxy.env.bibliotheca_parva.prepare(stmt).run();
   }
 });
 
@@ -86,26 +86,26 @@ export class BiblioWorld extends World {
   form: Record<string, string> = {};
 
   get db() {
-    return proxy.env.DB as D1Database;
+    return proxy.env.bibliotheca_parva as D1Database;
   }
 
   async resetDb() {
-    for (const t of TABLES) await proxy.env.DB.prepare(`DELETE FROM ${t}`).run();
+    for (const t of TABLES) await proxy.env.bibliotheca_parva.prepare(`DELETE FROM ${t}`).run();
   }
 
   async makeBook(over: Partial<BookInput>): Promise<number> {
-    this.bookId = await createBook(proxy.env.DB, emptyInput(over));
+    this.bookId = await createBook(proxy.env.bibliotheca_parva, emptyInput(over));
     this.bookTitle = over.title ?? null;
     return this.bookId;
   }
 
   async findBookId(title: string): Promise<number> {
-    const r = await proxy.env.DB.prepare("SELECT id FROM book WHERE title = ?").bind(title).first<{ id: number }>();
+    const r = await proxy.env.bibliotheca_parva.prepare("SELECT id FROM book WHERE title = ?").bind(title).first<{ id: number }>();
     return r?.id ?? 0;
   }
 
   async loadDraft(id: number): Promise<BookInput> {
-    const b = await getBookForEdit(proxy.env.DB, id);
+    const b = await getBookForEdit(proxy.env.bibliotheca_parva, id);
     if (!b) throw new Error(`no book ${id}`);
     return emptyInput({
       title: b.title, subtitle: b.subtitle, original_title: b.original_title,
@@ -122,15 +122,15 @@ export class BiblioWorld extends World {
   async editBook(id: number, fn: (d: BookInput) => void) {
     const d = await this.loadDraft(id);
     fn(d);
-    await updateBook(proxy.env.DB, id, d);
+    await updateBook(proxy.env.bibliotheca_parva, id, d);
   }
 
   async removeBook(id: number) {
-    await deleteBook(proxy.env.DB, id);
+    await deleteBook(proxy.env.bibliotheca_parva, id);
   }
 
   async contributions(id: number) {
-    const r = await proxy.env.DB
+    const r = await proxy.env.bibliotheca_parva
       .prepare("SELECT name_as_printed, role FROM contribution WHERE book_id = ?")
       .bind(id)
       .all<{ name_as_printed: string; role: string }>();
