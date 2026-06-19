@@ -56,6 +56,7 @@ app.get("/search", async (c) => {
 app.post("/lookup", async (c) => {
   const body = await c.req.parseBody();
   const raw = (body["isbn"] ?? "").toString().trim();
+  if (!raw) return c.redirect("/add", 303); // blank ISBN -> add by hand
   if (!isValidIsbn(raw)) {
     return c.html(searchPage(`"${raw}" is not a valid ISBN.`));
   }

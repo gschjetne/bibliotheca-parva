@@ -61,7 +61,7 @@ Then("the results do not include {string}", function (this: BiblioWorld, title: 
 });
 
 Then("no results are shown", function (this: BiblioWorld) {
-  assert.ok(!this.body.includes("<strong>"), "expected no result rows");
+  assert.ok(!/<tr/.test(this.body), "expected no result rows");
 });
 
 Then("{string} appears exactly once in the results", function (this: BiblioWorld, title: string) {
@@ -70,12 +70,12 @@ Then("{string} appears exactly once in the results", function (this: BiblioWorld
 });
 
 Then("at most {int} results are shown", function (this: BiblioWorld, n: number) {
-  const rows = this.body.split("<tr").length - 2; // minus head row + leading split
+  const rows = (this.body.match(/<tr/g) ?? []).length; // /search returns only data rows
   assert.ok(rows <= n, `expected <= ${n} rows, saw ${rows}`);
 });
 
 Then("the results are ordered by title", function (this: BiblioWorld) {
-  const titles = [...this.body.matchAll(/<strong>([^<]*)<\/strong>/g)].map((m) => m[1]);
+  const titles = [...this.body.matchAll(/<p class="font-bold">([^<]*)<\/p>/g)].map((m) => m[1]);
   const sorted = [...titles].sort((a, b) => a.localeCompare(b));
   assert.deepEqual(titles, sorted, "results not ordered by title");
 });

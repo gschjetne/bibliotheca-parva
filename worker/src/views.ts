@@ -5,85 +5,88 @@ import type { Candidate } from "./providers";
 import type { EditableBook } from "./mutate";
 import { scalarOptions, listOptions, groupContributorsByRole } from "./review";
 
-function layout(title: string, body: HtmlEscapedString | Promise<HtmlEscapedString>) {
-  return html`<!doctype html>
+type Html = HtmlEscapedString | Promise<HtmlEscapedString>;
+
+// Ported from the Django templates (base.html) so the look matches the
+// original app. Tailwind is built from these classes (see tailwind.config.js).
+function layout(title: string, body: Html) {
+  return html`<!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>${title}</title>
-    <style>
-      body { font: 15px/1.5 Georgia, serif; max-width: 60rem; margin: 2rem auto; padding: 0 1rem; color: #1f2937; }
-      h1 { font-family: system-ui, sans-serif; }
-      input[name="query"] { width: 22rem; max-width: 100%; padding: .5rem .8rem; border: 1px solid #94a3b8; border-radius: 9999px; }
-      table { width: 100%; border-collapse: collapse; margin-top: 1.2rem; font-size: 14px; }
-      th, td { border: 1px solid #cbd5e1; padding: .4rem .6rem; text-align: left; vertical-align: top; }
-      th { background: #0284c7; color: #fff; font-family: system-ui, sans-serif; }
-      tr:nth-child(even) td { background: #f1f5f9; }
-      .subtitle { font-style: italic; color: #475569; }
-      .muted { color: #94a3b8; }
-    </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/css/styles.css" />
   </head>
-  <body>
-    ${body}
-    <script src="/js/htmx.min.js" defer></script>
+  <body class="bg-gray-50 font-serif leading-normal tracking-normal">
+    <div class="container mx-auto p-5">
+      ${body}
+      <script src="/js/htmx.min.js" defer></script>
+    </div>
   </body>
 </html>`;
 }
 
+const INPUT = "border border-slate-500 shadow-inner rounded-full text-xs p-2 m-1";
+const BUTTON =
+  "border border-slate-500 bg-sky-600 text-white shadow-md p-2 m-1 font-sans font-bold text-xs uppercase rounded-full cursor-pointer";
+const CELL = "p-2 border border-slate-300";
+
+// Home page: search box + add-by-ISBN form + results table (from index.html).
 export function searchPage(error?: string) {
   return layout(
     "Bibliotheca Parva",
-    html`<h1>Bibliotheca Parva</h1>
-    <form method="post" action="/lookup" style="margin-bottom:1rem">
-      <input name="isbn" placeholder="Add by ISBN" style="padding:.5rem .8rem;border:1px solid #94a3b8;border-radius:9999px" />
-      <button type="submit">Add</button>
-      <a href="/add" style="margin-left:.6rem">add without an ISBN</a>
-      ${error ? html`<span style="color:#b91c1c;margin-left:.6rem">${error}</span>` : raw("")}
-    </form>
-    <input
-      type="search"
-      name="query"
-      placeholder="Search title, contributor, or ISBN"
-      autofocus
-      hx-get="/search"
-      hx-trigger="keyup changed delay:150ms, search"
-      hx-target="#search-results"
-    />
-    <table>
-      <thead>
-        <tr>
-          <th style="width:38%">Title</th>
-          <th style="width:34%">Contributors</th>
-          <th style="width:12%">Language</th>
-          <th style="width:12%">Location</th>
-          <th style="width:4%"></th>
+    html`<div class="flex justify-between">
+      <div>
+        <input
+          class="${INPUT} w-80"
+          type="search"
+          name="query"
+          placeholder="Search"
+          hx-get="/search"
+          hx-trigger="keyup changed delay:100ms, search"
+          hx-target="#search-results"
+        />
+      </div>
+      <form method="post" action="/lookup">
+        <input class="${INPUT}" name="isbn" placeholder="ISBN" />
+        <input class="${BUTTON}" type="submit" value="Add" />
+        ${error ? html`<span class="text-xs text-red-600">${error}</span>` : raw("")}
+      </form>
+    </div>
+
+    <table class="table-fixed text-xs border border-slate-500 mt-5 w-full shadow-md">
+      <thead class="font-sans">
+        <tr class="bg-sky-600 text-white">
+          <th class="w-4/12 ${CELL}">Title</th>
+          <th class="w-4/12 ${CELL}">Contributors</th>
+          <th class="w-2/12 ${CELL}">Language</th>
+          <th class="w-1/12 ${CELL}">Location</th>
+          <th class="w-1/12 ${CELL}"></th>
         </tr>
       </thead>
-      <tbody id="search-results" hx-get="/search" hx-trigger="load"></tbody>
+      <tbody id="search-results" hx-trigger="load" hx-get="/search"></tbody>
     </table>`,
   );
 }
 
-/** The <tr> rows swapped into #search-results by HTMX. */
+// The <tr> rows swapped into #search-results by HTMX (from search.html).
 export function resultRows(books: ResultBook[]) {
-  if (books.length === 0) {
-    return html`<tr><td colspan="5" class="muted">No results.</td></tr>`;
-  }
   return html`${books.map(
-    (b) => html`<tr>
-      <td>
-        ${b.title ? html`<strong>${b.title}</strong>` : html`<span class="muted">Missing Title</span>`}
-        ${b.subtitle ? html`<div class="subtitle">${b.subtitle}</div>` : raw("")}
+    (b) => html`<tr class="odd:bg-slate-200">
+      <td class="${CELL}">
+        <p class="font-bold">${b.title ? b.title : html`<span class="text-slate-400">Missing Title</span>`}</p>
+        <p class="italic">${b.subtitle ?? ""}</p>
       </td>
-      <td>${b.contributors}</td>
-      <td>${b.languages}</td>
-      <td>${b.shelf_location ?? ""}</td>
-      <td><a href="/books/${b.id}/edit">edit</a></td>
+      <td class="${CELL}">${b.contributors}</td>
+      <td class="${CELL}">${b.languages}</td>
+      <td class="${CELL}">${b.shelf_location ?? ""}</td>
+      <td class="${CELL}"><a class="text-sky-700 underline" href="/books/${b.id}/edit">edit</a></td>
     </tr>`,
   )}`;
 }
 
+// --- add / edit form -------------------------------------------------------
 const SCALARS: [string, string, "text" | "number" | "textarea"][] = [
   ["title", "Title", "text"],
   ["subtitle", "Subtitle", "text"],
@@ -103,24 +106,28 @@ const LISTS: [string, string, string][] = [
   ["subjects", "subjects", "Subjects"],
 ];
 
+const FIELD_INPUT =
+  "border border-slate-500 shadow-inner rounded-full text-xs p-2 w-full";
+const FIELD_TEXTAREA = "border border-slate-500 shadow-inner rounded text-xs p-2 w-full";
+const LABEL = "font-sans font-bold text-xs uppercase text-slate-600";
+
 function chips(opts: { source: string; value: string }[]) {
   if (opts.length < 2) return raw("");
-  return html`<div class="chips">${opts.map(
+  return html`<div class="flex flex-wrap gap-1 mt-1">${opts.map(
     (o) =>
-      html`<button type="button" class="chip" data-v="${o.value}" onclick="fillField(this)">${o.source}: ${o.value}</button>`,
+      html`<button
+        type="button"
+        class="border border-slate-300 rounded-full text-xs px-2 py-1 bg-white hover:bg-slate-100 cursor-pointer"
+        data-v="${o.value}"
+        onclick="fillField(this)"
+      >${o.source}: ${o.value}</button>`,
   )}</div>`;
 }
 
 type FormValues = Record<string, string>;
 
 function emptyValues(): FormValues {
-  const v: FormValues = {
-    isbn: "",
-    languages: "",
-    shelf_location: "",
-    foreword: "",
-    subjects: "",
-  };
+  const v: FormValues = { isbn: "", languages: "", shelf_location: "", foreword: "", subjects: "" };
   for (const [k] of SCALARS) v[k] = "";
   for (const [, f] of LISTS) v[f] = "";
   return v;
@@ -157,8 +164,6 @@ function valuesFromBook(b: EditableBook): FormValues {
   return v;
 }
 
-type Html = HtmlEscapedString | Promise<HtmlEscapedString>;
-
 type FormOpts = {
   heading: Html;
   intro?: Html;
@@ -168,6 +173,13 @@ type FormOpts = {
   deleteAction?: string;
 };
 
+function field(label: string, control: Html, extra: Html = raw("")) {
+  return html`<div class="mb-3">
+    <label class="block ${LABEL} mb-1">${label}</label>
+    ${control}${extra}
+  </div>`;
+}
+
 function renderForm(o: FormOpts) {
   const { values, candidates } = o;
 
@@ -175,53 +187,41 @@ function renderForm(o: FormOpts) {
     const value = values[key] ?? "";
     const control =
       type === "textarea"
-        ? html`<textarea name="${key}" rows="3">${value}</textarea>`
-        : html`<input type="${type === "number" ? "number" : "text"}" name="${key}" value="${value}" />`;
-    return html`<div class="field"><label>${label}</label>${control}${chips(scalarOptions(candidates, key))}</div>`;
+        ? html`<textarea name="${key}" rows="3" class="${FIELD_TEXTAREA}">${value}</textarea>`
+        : html`<input type="${type === "number" ? "number" : "text"}" name="${key}" value="${value}" class="${FIELD_INPUT}" />`;
+    return field(label, control, chips(scalarOptions(candidates, key)));
   };
 
-  const listRow = (key: string, field: string, label: string) => {
-    const opt2 = listOptions(candidates, key).map((o) => ({
-      source: o.source,
-      value: o.names.join("\n"),
-    }));
-    return html`<div class="field">
-      <label>${label} <small class="muted">(one per line)</small></label>
-      <textarea name="${field}" rows="2">${values[field] ?? ""}</textarea>
-      ${chips(opt2)}
-    </div>`;
+  const listRow = (key: string, fieldName: string, label: string) => {
+    const opt2 = listOptions(candidates, key).map((o) => ({ source: o.source, value: o.names.join("\n") }));
+    const control = html`<textarea name="${fieldName}" rows="2" class="${FIELD_TEXTAREA}">${values[fieldName] ?? ""}</textarea>`;
+    return field(`${label} (one per line)`, control, chips(opt2));
   };
 
   return layout(
     "Bibliotheca Parva",
-    html`<h1>${o.heading}</h1>
-    ${o.intro ? html`<p class="muted">${o.intro}</p>` : raw("")}
-    <form method="post" action="${o.action}" class="bookform">
-      <div class="field"><label>ISBN</label><input type="text" name="isbn" value="${values.isbn}" /></div>
+    html`<h1 class="font-bold font-sans text-lg mb-1">${o.heading}</h1>
+    ${o.intro ? html`<p class="text-xs italic text-slate-500 mb-3">${o.intro}</p>` : raw("")}
+    <form method="post" action="${o.action}" class="max-w-2xl">
+      ${field("ISBN", html`<input type="text" name="isbn" value="${values.isbn}" class="${FIELD_INPUT}" />`)}
       ${SCALARS.map(([k, l, t]) => scalarRow(k, l, t))}
       ${LISTS.map(([k, f, l]) => listRow(k, f, l))}
-      <div class="field"><label>Foreword by <small class="muted">(one per line)</small></label><textarea name="foreword" rows="2">${values.foreword}</textarea></div>
-      <div class="field"><label>Languages <small class="muted">(comma-separated codes)</small></label><input type="text" name="languages" value="${values.languages}" /></div>
-      <div class="field"><label>Shelf location</label><input type="text" name="shelf_location" value="${values.shelf_location}" /></div>
-      <button type="submit">Save book</button>
-      <a href="/" style="margin-left:.6rem">cancel</a>
+      ${field("Foreword by (one per line)", html`<textarea name="foreword" rows="2" class="${FIELD_TEXTAREA}">${values.foreword}</textarea>`)}
+      ${field("Languages (comma-separated codes)", html`<input type="text" name="languages" value="${values.languages}" class="${FIELD_INPUT}" />`)}
+      ${field("Shelf location", html`<input type="text" name="shelf_location" value="${values.shelf_location}" class="${FIELD_INPUT}" />`)}
+      <div class="mt-4">
+        <input type="submit" value="Save book" class="${BUTTON}" />
+        <a href="/" class="text-xs text-slate-500 ml-2">cancel</a>
+      </div>
     </form>
     ${o.deleteAction
-      ? html`<form method="post" action="${o.deleteAction}" onsubmit="return confirm('Delete this book?')" style="margin-top:1rem">
-          <button type="submit" style="color:#b91c1c">Delete book</button>
+      ? html`<form method="post" action="${o.deleteAction}" onsubmit="return confirm('Delete this book?')" class="mt-4 max-w-2xl">
+          <input type="submit" value="Delete book" class="border border-red-700 text-red-700 p-2 font-sans font-bold text-xs uppercase rounded-full cursor-pointer" />
         </form>`
       : raw("")}
-    <style>
-      .bookform { max-width: 40rem; }
-      .field { margin: .7rem 0; display: flex; flex-direction: column; gap: .25rem; }
-      .field label { font-family: system-ui, sans-serif; font-size: 13px; font-weight: 600; }
-      .field input, .field textarea { padding: .4rem .6rem; border: 1px solid #94a3b8; border-radius: .3rem; font: inherit; }
-      .chips { display: flex; flex-wrap: wrap; gap: .3rem; }
-      .chip { font-size: 12px; padding: .15rem .5rem; border: 1px solid #cbd5e1; border-radius: 9999px; background: #f8fafc; cursor: pointer; }
-    </style>
     <script>
       function fillField(btn) {
-        const f = btn.closest('.field').querySelector('input, textarea');
+        const f = btn.closest('div').querySelector('input, textarea');
         if (f) f.value = btn.getAttribute('data-v');
       }
     </script>`,

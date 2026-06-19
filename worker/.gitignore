@@ -2,6 +2,7 @@ node_modules/
 .wrangler/
 dist/
 seed.sql
+public/css/styles.css
 *.log
 .dev.vars
 .dev.vars.*
