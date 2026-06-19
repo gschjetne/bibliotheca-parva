@@ -1,13 +1,14 @@
 # Architecture — Bibliotheca Parva on Cloudflare
 
-Status: accepted for the migration. Supersedes the Django + Postgres + container
-deployment. This document records the decisions and their rationale so phases 3
-(data model) and 4 (implementation) have a fixed target.
+Status: **as built.** This describes the SvelteKit-on-Workers app that is
+deployed and live at `library.schjetne.dev`. It replaced the original Django +
+Postgres + container deployment (and a short-lived interim Hono + HTMX cut on
+Workers). The decisions below record what shipped and why.
 
 ## Context and goals
 
 Bibliotheca Parva is a private home-library catalogue: one household, ~1700
-books, read-heavy, search-driven, login-gated. The Django app works but a
+books, read-heavy, search-driven, login-gated. The Django app worked but a
 running container is wasteful for this usage. Goals:
 
 - **Scale to zero** — no idle cost when nobody is using it.
@@ -19,54 +20,84 @@ running container is wasteful for this usage. Goals:
 | Concern | Decision |
 |---|---|
 | Compute | Cloudflare **Workers** (functions), free plan |
-| Web framework | **Hono**, server-rendered HTML + HTMX (no SPA) |
+| Web framework | **SvelteKit** (Svelte 5) via `@sveltejs/adapter-cloudflare` |
+| UI | Client-rendered Svelte; JSON endpoints (`+server.ts`) for data |
+| Styling | **Tailwind CSS v4** (`@tailwindcss/vite`) |
 | Persistence | **D1** (SQLite) |
 | Search | **FTS5** full-text index, accent-folded |
 | Auth | **Cloudflare Access** (Zero Trust) in front of the Worker |
-| Static assets | **Workers Static Assets** |
-| ISBN metadata | **Parallel `fetch()` fan-out** → review screen → save |
+| Static assets | **adapter-cloudflare** output served as Workers assets |
+| ISBN metadata | **Client-side `fetch()` fan-out** → review screen → save |
 | Infra / IaC | **Wrangler config + migrations in git**; one-time Access/DNS in a runbook (no Terraform) |
 
 ### Compute: Workers (free plan)
 
 Per-request billing, genuine scale-to-zero, negligible cold start. The free
 plan's limits are all comfortable for this app. The one limit that needed care —
-the ~10 ms CPU budget per request — is a non-issue now that auth (the only
-CPU-heavy step) lives in Cloudflare Access rather than in the Worker.
+the ~10 ms CPU budget per request — is a non-issue: auth (the only CPU-heavy
+step) lives in Cloudflare Access, and the bibliographic fan-out runs in the
+browser, not the Worker (see below).
 
-### Web framework: Hono, server-rendered
+### Web framework: SvelteKit on Workers
 
-The app is forms plus a little HTMX, not a SPA. Hono runs on Web Standards and
-returns HTML — either via the `hono/html` tagged-template helper (ideal for HTMX
-partial responses) or its JSX renderer for full-page layouts. The current
-live-search and the new field-by-field review screen are both server-rendered
-fragment swaps, so the HTMX model ports over directly. Hono's router also
-provides the auth-gate middleware. (A zero-dependency plain Worker with a
-template function is the fallback if we want to drop the dependency.)
+The app is a small client-rendered Svelte 5 app served by a single Worker.
+`@sveltejs/adapter-cloudflare` compiles the SvelteKit app into a Worker entry
+(`.svelte-kit/cloudflare/_worker.js`) plus a directory of client assets, both
+declared in `wrangler.jsonc`. SvelteKit's file-based routing gives us the page
+routes and the JSON API in one project, and `hooks.server.ts` is the natural
+home for the Access gate (it runs before every request).
+
+The UI is interactive (live search, a field-by-field review/edit table with
+autocomplete chips), so it is rendered on the client and talks to small JSON
+endpoints rather than swapping server-rendered HTML fragments. Pages do minimal
+server work: only the edit page has a server `load` (to fetch the book); the rest
+fetch from the JSON API as the user types.
+
+#### Code structure
+
+- `src/routes/+page.svelte` — home: live search + add-by-ISBN field.
+- `src/routes/add/+page.svelte` — the add/review screen (renders `BookEditor`).
+- `src/routes/books/[id]/edit/` — `+page.server.ts` loads the book; `+page.svelte`
+  renders `BookEditor` for edit/delete.
+- `src/routes/api/` — JSON endpoints: `search`, `books` (POST create),
+  `books/[id]` (PUT/DELETE), and `suggest/{contributors,places,publishers}`.
+- `src/lib/components/` — `BookEditor`, `ContributorPicker`, `LanguagePicker`,
+  `SuggestInput`.
+- `src/lib/server/` — D1-touching code: `db.ts` (search/suggest queries),
+  `mutate.ts` (create/update/delete + FTS upkeep), `access.ts` (JWT verify).
+- `src/lib/*.ts` — **isomorphic** pure logic shared by client and server and
+  unit-tested in isolation: `isbn`, `fold`, `search`, `review`, `providers`,
+  `sources`, `languages`. Keeping these I/O-free is what lets the provider
+  parsers run unchanged in the browser.
 
 ### Persistence: D1
 
-D1 is real SQLite; our simplified relational model maps onto it directly. At
-1700 books we sit far inside the **free tier** (5 M row-reads/day, 100 k
-writes/day, 500 MB) and pay nothing. Writes go to a single primary; we do **not**
-opt into the read-replica Sessions API, so reads are strongly consistent with
-zero effort. Schema is managed with `wrangler d1 migrations` (versioned `.sql`
-files tracked in a `d1_migrations` table); the production dump is imported the
-same way for the parity-verification pass (phase 4).
+D1 is real SQLite; our simplified relational model (see `docs/data-model.md`)
+maps onto it directly. At 1700 books we sit far inside the **free tier** (5 M
+row-reads/day, 100 k writes/day, 500 MB) and pay nothing. Writes go to a single
+primary; we do **not** opt into the read-replica Sessions API, so reads are
+strongly consistent with zero effort. Schema is managed with `wrangler d1
+migrations` (versioned `.sql` files in `migrations/`, tracked in a
+`d1_migrations` table); the production catalogue was imported the same way.
 
 ### Search: FTS5, accent-folded
 
-FTS5 is available on D1 and replaces the current `LIKE '%term%'` OR-chain across
-title / subtitle / contributor names. Two D1 facts make FTS5 the right call
-rather than a nicety:
+FTS5 on D1 replaces Django's `LIKE '%term%'` OR-chain across title / subtitle /
+contributor names. Two D1 facts make FTS5 the right call rather than a nicety:
 
 - **`LIKE`/`GLOB` patterns are capped at 50 bytes** on D1 — fine for our 1700
   rows but a real limit to design around.
 - **`COLLATE NOCASE` is ASCII-only.** The catalogue contains Nordic names
   (e.g. "Åke Ohlmarks") and Swedish/Norwegian source data, so case/accent-
-  insensitive search needs folding. We store an accent-folded, lowercased copy
-  of searchable text and index it with FTS5, kept in sync via triggers (or on
-  write from the app).
+  insensitive search needs folding.
+
+A `book_fts` virtual table indexes accent-folded, lowercased title / subtitle /
+original-title / contributor-names / subjects. It is kept in sync **from the app
+on every write** (`mutate.ts` deletes and re-inserts the row), not via SQL
+triggers — the write path already owns the related person/contribution/subject
+rows, so it is the simplest single place to also rebuild the FTS row. Queries
+fold the user's terms and run prefix `MATCH`; a purely numeric query is routed to
+an ISBN prefix match instead (`search.ts`).
 
 ### Auth: Cloudflare Access (Zero Trust)
 
@@ -78,87 +109,105 @@ household's authorised identities are an Access allow-list policy; adding or
 removing a person is a policy change, not a schema change. Free for up to 50
 seats, which a single household never approaches.
 
-The Worker still **verifies the Access JWT** (`Cf-Access-Jwt-Assertion`) on every
-request as defence in depth, so it refuses anything that reaches it without a
-valid Access identity (e.g. if the Worker URL is hit directly, bypassing the
-protected hostname). The app reads the authenticated user's identity from the
-verified token when it needs to know who is acting.
+As defence in depth, `hooks.server.ts` still **verifies the Access JWT**
+(`Cf-Access-Jwt-Assertion`) on every request: `access.ts` checks the RS256
+signature against the team's JWKS (`/cdn-cgi/access/certs`, cached per isolate)
+plus issuer, audience and expiry, and returns the identity onto
+`event.locals.identity`. Anything reaching the Worker without a valid token —
+e.g. a direct hit on the `*.workers.dev` URL, bypassing the protected
+hostname — gets a 403. Local dev sets `ACCESS_BYPASS=true` in `.dev.vars` to open
+the gate with a stub identity. See `features/authentication.feature`.
 
-Consequences: **no `users` table and no auth code to maintain** — a net
-reduction in moving parts. Escape hatch if we ever want in-app passwords
-instead: self-hosted PBKDF2 via Web Crypto with iteration count tuned to the
-free CPU budget (or Workers Paid for full-strength hashing).
+Consequences: **no `users` table and no auth code to maintain** beyond the ~115
+lines of JWT verification — a net reduction in moving parts.
 
-### Static assets: Workers Static Assets
+### Static assets: adapter-cloudflare
 
-Replaces Django `staticfiles`. CSS and the vendored `htmx.min.js` ship from an
-assets directory configured in `wrangler` config; asset requests are served at
-the edge and do **not** count as Worker invocations. SPA `not_found_handling`
-stays **off** so unmatched routes reach the Worker.
+There is no separate static pipeline. `adapter-cloudflare` emits client JS, CSS
+(Tailwind v4, built by `@tailwindcss/vite`) and `static/` files into
+`.svelte-kit/cloudflare`, declared as the `assets` directory in `wrangler.jsonc`.
+Asset requests are served at the edge and do **not** count as Worker
+invocations; unmatched routes fall through to the SvelteKit Worker.
 
-### ISBN metadata: parallel fan-out → review → save
+### ISBN metadata: client-side fan-out → review → save
 
-Realises decision 3 from `features/README.md`. On ISBN lookup the Worker calls
-all configured bibliographic providers **in parallel** (`Promise.all`), then
-renders a review screen showing each provider's value per field. The librarian
-picks per field (or types their own); the book is created only on save.
+Realises decision 3 from `features/README.md`, with one notable shift from the
+original design: the fan-out runs **in the browser**, not the Worker.
 
-- 3+ parallel `fetch()` calls are trivially within the free limits (50 external
-  subrequests/invocation, 6 concurrent header-waits).
-- Network wait does **not** count against the 10 ms CPU budget; parallel time is
-  bounded by the slowest provider, not the sum.
-- Candidate data is **transient** — held in form/request state, never persisted
-  until save. A slow or unavailable provider must not block the others.
-- Adding a new provider is additive: another column of candidates, same UI.
+On lookup, `sources.ts` fires a request to each configured provider — **Libris**
+(`libris.kb.se`), **Open Library** (`openlibrary.org`) and **Bibbi**
+(`bibliografisk.bs.no`) — independently (not awaited together), so the editor's
+source columns fill in progressively and a slow or unavailable provider never
+blocks the others. All three serve permissive CORS, so the parsers in
+`providers.ts` run unchanged client-side. The review table shows each provider's
+value per field; the librarian clicks to copy a value into their record (or types
+their own), and the book is created only on **save** (`POST /api/books`).
+
+Why client-side: it keeps third-party network latency and subrequests entirely
+off the Worker (no CPU/subrequest budget spent, nothing to time out), the
+candidate data is transient and never needs to touch our server until save, and
+adding a provider is additive — another entry in `SOURCES`, another column.
 
 ## Key data flows
 
 **Add by ISBN.** Home-page ISBN field (Return or "Add") → validate/canonicalise
-ISBN → fan-out to providers in parallel → review screen (candidates per field) →
-librarian composes → save creates the book (and its FTS index row).
+the ISBN client-side (`isbn.ts`) → `/add?isbn=…` → the browser fans out to the
+providers → review table (candidates per field) → librarian composes →
+`POST /api/books` creates the book and its FTS row → redirect to its edit page.
 
-**Search.** Live HTMX `GET` as the librarian types → query the FTS5 index →
-return an HTML fragment of result rows. Empty query returns nothing (by
-decision).
+**Search.** Debounced `GET /api/search?query=…` as the librarian types → folded
+FTS5 (or ISBN-prefix) query in D1 → JSON rows → rendered by Svelte. Empty query
+returns nothing (by decision).
+
+**Edit / delete.** `/books/[id]/edit` server-loads the record → the same
+`BookEditor` table → `PUT`/`DELETE /api/books/[id]`; updates rewrite
+contributors, subjects and the FTS row and prune newly-orphaned persons.
 
 ## Dev & deploy
 
-- `wrangler.jsonc` holds bindings (`d1_databases`, `assets`), `compatibility_date`,
-  `vars`, and cron triggers.
-- `wrangler dev` runs the Worker locally on workerd with local D1 and assets.
-- Secrets via `wrangler secret put` (prod) and `.dev.vars` locally (git-ignored).
-- Deploy with `wrangler deploy`. Named environments for any staging split.
-- Cron Triggers (`triggers.crons` + a `scheduled()` handler) are available if we
-  later want periodic metadata refresh — noted for phase 5, not used at parity.
+- `wrangler.jsonc` holds the `main` Worker entry, the `assets` binding, the
+  `d1_databases` binding (`DB`), `compatibility_date`, the `nodejs_als` flag
+  (AsyncLocalStorage, required by adapter-cloudflare), and `vars` (the non-secret
+  `ACCESS_*` config).
+- `npm run dev` runs the vite dev server; `npm run preview` runs the built Worker
+  under `wrangler dev` with local D1 + `.dev.vars`.
+- `npm run check` = `wrangler types` + `svelte-check`. `npm test` = Vitest units +
+  Playwright E2E (`e2e/`, run against the built Worker + a seeded local D1).
+- `npm run deploy` = `vite build` then `wrangler deploy`. A custom domain is a
+  `routes` entry in `wrangler.jsonc`; without it the app deploys to
+  `*.workers.dev` (handy for a smoke test). See `docs/runbook.md`.
+- Local D1 is seeded from the production dump via `npm run bootstrap:local`
+  (`db-backup.sql.bz2` → `seed.sql` → `wrangler d1 execute --local`).
 
 ### Infrastructure as code
 
-`wrangler.jsonc` (Worker, D1 bindings, static assets, cron) plus the versioned
-`wrangler d1 migrations` are the source of truth, all in git — that already
-covers ~80% of the infrastructure declaratively. The two pieces wrangler does
-not manage — the **Cloudflare Access application + allow-list policy** and
-**DNS / custom domain** — are one-time setup steps captured in `docs/runbook.md`
-(written in phase 4, when the real resource names exist) rather than codified in
-Terraform. Terraform was considered and rejected for now: it would add a second
-toolchain, a state backend, and provider churn for little benefit at
-single-household scale. If edge-config reproducibility ever matters, the
-intended path is a small Terraform module covering **only** Access + DNS, never
-the Worker/D1 (which wrangler manages better).
+`wrangler.jsonc` plus the versioned `migrations/` are the source of truth, all in
+git — that covers ~80% of the infrastructure declaratively. The two pieces
+wrangler does not manage — the **Cloudflare Access application + allow-list
+policy** and **DNS / custom domain** — are one-time setup steps captured in
+`docs/runbook.md` rather than codified in Terraform. Terraform was considered and
+rejected for now: it would add a second toolchain, a state backend, and provider
+churn for little benefit at single-household scale. If edge-config
+reproducibility ever matters, the intended path is a small Terraform module
+covering **only** Access + DNS, never the Worker/D1 (which wrangler manages
+better).
 
-## Deferred to later phases
+## Possible future work
 
-- **Phase 3** — the simplified D1 schema (collapsing the over-modelled
-  Person/Location/Subject entities and 5 role M2Ms; the production dump shows
-  Location was never used). No `users`/auth tables — identity comes from Access.
-- **Phase 4** — implementation to parity, plus importing the dump and diffing
-  old vs new behaviour over real data.
+- **Cron Triggers** (`triggers.crons` + a `scheduled()` handler) are available if
+  we later want periodic metadata refresh — not used today.
+- **In-app passwords** as an escape hatch if we ever drop Access: self-hosted
+  PBKDF2 via Web Crypto with iterations tuned to the free CPU budget (or Workers
+  Paid for full-strength hashing).
+- **Identity clustering/merge** for look-alike contributor records (the data
+  model links contributions to a `person`, but merge is manual today).
 
 ## References
 
 - D1 limits / pricing / SQL: https://developers.cloudflare.com/d1/platform/limits/ ,
   https://developers.cloudflare.com/d1/sql-api/sql-statements/
 - Workers limits (CPU, subrequests): https://developers.cloudflare.com/workers/platform/limits/
-- Static assets: https://developers.cloudflare.com/workers/static-assets/
-- Web Crypto / hashing: https://developers.cloudflare.com/workers/runtime-apis/web-crypto/
+- SvelteKit on Cloudflare: https://svelte.dev/docs/kit/adapter-cloudflare
+- Workers static assets: https://developers.cloudflare.com/workers/static-assets/
+- Web Crypto: https://developers.cloudflare.com/workers/runtime-apis/web-crypto/
 - Cloudflare Access (self-hosted app + JWT validation): https://developers.cloudflare.com/cloudflare-one/identity/authorization-cookie/validating-json/
-- Hono on Workers: https://developers.cloudflare.com/workers/framework-guides/web-apps/more-web-frameworks/hono/

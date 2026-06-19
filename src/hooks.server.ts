@@ -1,8 +1,8 @@
 import type { Handle } from '@sveltejs/kit';
 import { verifyAccessJwt } from '$lib/server/access';
 
-// Cloudflare Access gate (defence in depth), ported from the Hono middleware.
-// Access authenticates at the edge; we still verify the JWT here so a direct
+// Cloudflare Access gate (defence in depth). Access authenticates at the edge;
+// we still verify the JWT here so a direct
 // hit on the Worker — bypassing the Access-protected hostname — is refused.
 // Local dev sets ACCESS_BYPASS=true via .dev.vars.
 export const handle: Handle = async ({ event, resolve }) => {
