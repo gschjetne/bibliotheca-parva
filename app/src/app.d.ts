@@ -10,7 +10,9 @@ declare global {
 		}
 
 		// interface Error {}
-		// interface Locals {}
+		interface Locals {
+			identity: { email: string; sub: string };
+		}
 		// interface PageData {}
 		// interface PageState {}
 	}
