@@ -1,0 +1,30 @@
+{
+	"$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+	"packageManager": "npm",
+	"testRunner": "vitest",
+	"vitest": { "configFile": "vitest.stryker.config.ts" },
+	"coverageAnalysis": "perTest",
+	"mutate": [
+		"src/lib/**/*.ts",
+		"!src/lib/**/*.test.ts",
+		"!src/lib/index.ts",
+		"!src/lib/server/db.ts",
+		"!src/lib/server/mutate.ts"
+	],
+	"ignorePatterns": [
+		".svelte-kit",
+		".wrangler",
+		"e2e",
+		"test-results",
+		"static",
+		"migrations",
+		"docs",
+		"docker",
+		"seed.sql",
+		"*.bz2",
+		"*.png",
+		"reports"
+	],
+	"reporters": ["html", "clear-text", "progress"],
+	"thresholds": { "high": 80, "low": 60, "break": null }
+}
