@@ -6,7 +6,12 @@
 	import { toIsbn13 } from '$lib/isbn';
 	import LanguagePicker from './LanguagePicker.svelte';
 	import ContributorPicker from './ContributorPicker.svelte';
+	import SubjectPicker from './SubjectPicker.svelte';
 	import SuggestInput from './SuggestInput.svelte';
+	import Throbber from './Throbber.svelte';
+
+	// One library-themed throbber per source column while it's fetching.
+	const THROBBERS = ['flip', 'stack', 'search'] as const;
 
 	export type EditorBook = {
 		id: number;
@@ -33,7 +38,7 @@
 	// when the book id changes, so this is re-snapshotted per book.
 	const init = untrack(() => book);
 
-	type Widget = 'text' | 'number' | 'textarea' | 'suggest' | 'role' | 'languages';
+	type Widget = 'text' | 'number' | 'textarea' | 'suggest' | 'role' | 'languages' | 'subjects';
 	type Row = { label: string; widget: Widget; cand?: keyof Candidate; key?: string; role?: string; endpoint?: string };
 	const ROWS: Row[] = [
 		{ label: 'Title', widget: 'text', cand: 'title', key: 'title' },
@@ -48,7 +53,7 @@
 		{ label: 'Translators', widget: 'role', cand: 'translators', role: 'translator' },
 		{ label: 'Illustrators', widget: 'role', cand: 'illustrators', role: 'illustrator' },
 		{ label: 'Foreword by', widget: 'role', role: 'foreword' },
-		{ label: 'Subjects', widget: 'textarea', cand: 'subjects', key: 'subjects' },
+		{ label: 'Subjects', widget: 'subjects', cand: 'subjects' },
 		{ label: 'Languages', widget: 'languages' },
 		{ label: 'Shelf location', widget: 'text', key: 'shelf_location' },
 		{ label: 'Description', widget: 'textarea', cand: 'description', key: 'description' }
@@ -69,11 +74,11 @@
 		published_by: init?.published_by ?? '',
 		published_place: init?.published_place ?? '',
 		published_year: init?.published_year?.toString() ?? '',
-		subjects: (init?.subjects ?? []).join('\n'),
 		shelf_location: init?.shelf_location ?? '',
 		description: init?.description ?? ''
 	});
 	let languages = $state<string[]>(init?.languages ? JSON.parse(init.languages) : []);
+	let subjects = $state<string[]>([...(init?.subjects ?? [])]);
 	const roles = $state<Record<string, Contributor[]>>({ author: [], editor: [], translator: [], illustrator: [], foreword: [] });
 	for (const c of init?.contributors ?? []) {
 		(roles[c.role] ??= []).push({ name: c.name_as_printed, personId: c.person_id ?? undefined });
@@ -97,7 +102,9 @@
 
 	function cell(state: SourceState | undefined, key?: keyof Candidate): { text: string; copy?: string } {
 		if (!key || !state) return { text: '' };
-		if (state.status === 'loading') return { text: '…' };
+		// While loading, cells stay blank — the per-source throbber in the column
+		// header is the single loading signal.
+		if (state.status === 'loading') return { text: '' };
 		if (state.status === 'error') return { text: 'unavailable' };
 		if (!state.candidate) return { text: '—' };
 		const f = candidateField(state.candidate, key);
@@ -107,6 +114,8 @@
 	function copyInto(row: Row, copy: string) {
 		if (row.widget === 'role' && row.role) {
 			roles[row.role] = copy.split('\n').filter(Boolean).map((name) => ({ name }));
+		} else if (row.widget === 'subjects') {
+			subjects = copy.split('\n').filter(Boolean);
 		} else if (row.key) {
 			rec[row.key] = copy;
 		}
@@ -119,7 +128,7 @@
 			published_by: rec.published_by, published_place: rec.published_place,
 			published_year: rec.published_year,
 			languages, shelf_location: rec.shelf_location,
-			subjects: rec.subjects.split('\n'),
+			subjects,
 			contributors: Object.entries(roles).flatMap(([role, list]) =>
 				list.map((c) => ({ name: c.name, role, personId: c.personId }))
 			)
@@ -165,8 +174,15 @@
 			<tr class="bg-sky-600 text-white">
 				<th class="w-2/12 p-2 border border-slate-300 text-left">Field</th>
 				<th class="w-4/12 p-2 border border-slate-300 text-left">Your record</th>
-				{#each SOURCES as s (s.name)}
-					<th class="p-2 border border-slate-300 text-left">{s.name}</th>
+				{#each SOURCES as s, i (s.name)}
+					<th class="p-2 border border-slate-300 text-left">
+						<span class="inline-flex items-center gap-1.5">
+							{s.name}
+							{#if states[s.name]?.status === 'loading'}
+								<Throbber variant={THROBBERS[i % THROBBERS.length]} label={`Fetching from ${s.name}…`} />
+							{/if}
+						</span>
+					</th>
 				{/each}
 			</tr>
 		</thead>
@@ -179,6 +195,8 @@
 							<ContributorPicker bind:contributors={roles[row.role]} />
 						{:else if row.widget === 'languages'}
 							<LanguagePicker bind:codes={languages} />
+						{:else if row.widget === 'subjects'}
+							<SubjectPicker bind:subjects />
 						{:else if row.widget === 'suggest' && row.key && row.endpoint}
 							<SuggestInput bind:value={rec[row.key]} endpoint={row.endpoint} />
 						{:else if row.widget === 'textarea' && row.key}

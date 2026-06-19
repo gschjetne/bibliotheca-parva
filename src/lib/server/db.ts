@@ -29,6 +29,23 @@ export async function suggestContributors(
   return r.results;
 }
 
+/** Existing subject names matching `query` (accent-folded), for the subject autocomplete. */
+export async function suggestSubjects(
+  db: D1Database,
+  query: string,
+  limit = 10,
+): Promise<string[]> {
+  const q = fold(query);
+  if (!q) return [];
+  const r = await db
+    .prepare(
+      `SELECT name FROM subject WHERE name_folded LIKE ?1 ORDER BY name LIMIT ?2`,
+    )
+    .bind(`%${q}%`, limit)
+    .all<{ name: string }>();
+  return r.results.map((x) => x.name);
+}
+
 /** Distinct existing values of a free-text book column matching `query`. */
 export async function suggestText(
   db: D1Database,

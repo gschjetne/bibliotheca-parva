@@ -10,6 +10,7 @@ import { test, expect, type APIRequestContext } from '@playwright/test';
 const TITLE = 'Zzqxtest Acceptance Volume';
 const SEARCH_TOKEN = 'Zzqxtest';
 const AUTHOR = 'Qphwx Authorson';
+const SUBJECT = 'Zzqxsubject Topic';
 
 async function createBlankBook(request: APIRequestContext): Promise<number> {
 	const res = await request.post('/api/books', {
@@ -40,6 +41,13 @@ test('edit a book: record shelf location and a contributor, then delete it', asy
 	await nameInput.press('Enter');
 	await expect(authorsRow.getByText(AUTHOR)).toBeVisible();
 
+	// Add a subject through its chip picker (unique, so it's recorded as typed).
+	const subjectsRow = page.getByRole('row', { name: /Subjects/ });
+	const subjectInput = subjectsRow.getByPlaceholder('add a subject…');
+	await subjectInput.fill(SUBJECT);
+	await subjectInput.press('Enter');
+	await expect(subjectsRow.getByText(SUBJECT)).toBeVisible();
+
 	await page.getByRole('button', { name: 'Save book' }).click();
 	await expect(page).toHaveURL(new RegExp(`/books/${id}/edit$`));
 
@@ -47,6 +55,7 @@ test('edit a book: record shelf location and a contributor, then delete it', asy
 	await page.reload();
 	await expect(page.locator('input[name="shelf_location"]')).toHaveValue('Living room, top shelf');
 	await expect(page.getByText(AUTHOR)).toBeVisible();
+	await expect(page.getByText(SUBJECT)).toBeVisible();
 
 	// The book is findable in the catalogue...
 	await page.goto('/');
