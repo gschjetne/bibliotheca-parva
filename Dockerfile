@@ -17,13 +17,15 @@ ENV PYTHONUNBUFFERED=1 \
     NODE_MAJOR=22
 
 # System deps: git, curl, ca-certificates + gnupg for tooling and the Node
-# install; the remaining libraries are Chromium's runtime deps so Playwright can
-# run the E2E tests (npx playwright install chromium && npm run test:e2e).
+# install; procps (`ps`) is needed by Stryker's test-runner process management
+# (npm run test:mutation); the remaining libraries are Chromium's runtime deps so
+# Playwright can run the E2E tests (npx playwright install chromium && npm run test:e2e).
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         curl \
         ca-certificates \
         gnupg \
+        procps \
         fonts-liberation \
         libnss3 libnspr4 libdbus-1-3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
         libdrm2 libatspi2.0-0 libxcomposite1 libxdamage1 libxext6 libxfixes3 \

@@ -22,6 +22,7 @@ npm run bootstrap:local   # seed a local D1 from db-backup.sql.bz2 (optional)
 npm run dev               # vite dev server
 npm run check             # types + svelte-check
 npm test                  # unit (vitest) + e2e (playwright)
+npm run test:mutation     # Stryker mutation testing of src/lib (needs procps/ps)
 npm run deploy            # build + wrangler deploy
 ```
 

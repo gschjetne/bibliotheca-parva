@@ -12,7 +12,6 @@
 		"!src/lib/server/mutate.ts"
 	],
 	"ignorePatterns": [
-		".svelte-kit",
 		".wrangler",
 		"e2e",
 		"test-results",
@@ -23,7 +22,10 @@
 		"seed.sql",
 		"*.bz2",
 		"*.png",
-		"reports"
+		"reports",
+		"!.svelte-kit",
+		"!.svelte-kit/**",
+		"!worker-configuration.d.ts"
 	],
 	"reporters": ["html", "clear-text", "progress"],
 	"thresholds": { "high": 80, "low": 60, "break": null }
