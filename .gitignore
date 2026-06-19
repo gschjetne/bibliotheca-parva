@@ -5,6 +5,6 @@ db.sqlite3
 env/
 .claude/settings.local.json
 
-# Database dumps / backups — contain real user data, never commit
-*.sql
+# Database dumps / backups — contain real user data, never commit.
+# (Migration .sql files are committed; the generated seed is ignored in worker/.)
 *.sql.bz2

@@ -1,0 +1,31 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bibliotheca-parva",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // Bind to the container port that docker-compose publishes (host 8055 -> 8000)
+  // and to 0.0.0.0 so it's reachable from the host.
+  "dev": { "ip": "0.0.0.0", "port": 8000 },
+  // Static assets (CSS, vendored htmx.min.js) — replaces Django staticfiles.
+  // Keep SPA fallback OFF so unmatched routes reach the Worker.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "bibliotheca-parva",
+      // Placeholder for local dev. Replace with the real id from
+      // `wrangler d1 create bibliotheca-parva` before deploying (see runbook).
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "observability": { "enabled": true },
+  "vars": {
+    // Set to "true" only for local dev to bypass the Access gate.
+    "ACCESS_BYPASS": "false"
+  }
+}

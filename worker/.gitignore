@@ -1,0 +1,7 @@
+node_modules/
+.wrangler/
+dist/
+seed.sql
+*.log
+.dev.vars
+.dev.vars.*
