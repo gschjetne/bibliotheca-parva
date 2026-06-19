@@ -1,2 +1,10 @@
 db.sqlite3
 *.pyc
+.env
+.env.uid
+env/
+.claude/settings.local.json
+
+# Database dumps / backups — contain real user data, never commit
+*.sql
+*.sql.bz2

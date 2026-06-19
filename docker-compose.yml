@@ -1,0 +1,67 @@
+# Docker system for migrating Bibliotheca Parva to Cloudflare serverless.
+#
+# Two services:
+#   db    - PostgreSQL, seeded from db-backup.sql.bz2
+#   agent - dev environment + Claude Code; run it with
+#           `docker compose exec agent claude --dangerously-skip-permissions`
+#
+# Usage:
+#   ./docker/agent.sh            # build, start, seed, drop into a shell
+# or manually:
+#   docker compose up -d
+#   docker compose run --rm agent ./docker/seed-db.sh
+#   docker compose exec agent bash
+
+services:
+  db:
+    image: postgres:16-bookworm
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bibliotheca_parva}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Not published to the host by default — the agent reaches it over the
+    # compose network as host "db". To poke at it from the host, uncomment:
+    # ports:
+    #   - "${DB_HOST_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-bibliotheca_parva}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  agent:
+    build:
+      context: .
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bibliotheca_parva}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0"
+      # Keep all of Claude Code's state (credentials + config) under one dir so a
+      # single named volume persists the login across container restarts, fully
+      # isolated from the host's ~/.claude (no clobbering the host config).
+      CLAUDE_CONFIG_DIR: /home/dev/.claude
+    volumes:
+      # The project itself.
+      - .:/workspace
+      # Container-local, persistent Claude Code config/credentials.
+      - claude_home:/home/dev/.claude
+    ports:
+      # Host ${WEB_HOST_PORT} -> container 8000 (Django dev server).
+      - "${WEB_HOST_PORT:-8055}:8000"
+    # Keep the container alive so you can exec into it interactively.
+    command: ["sleep", "infinity"]
+
+volumes:
+  pgdata:
+  claude_home:
