@@ -1,9 +1,6 @@
 # Deploy runbook — Bibliotheca Parva on Cloudflare
 
-One-time setup plus the deploy steps. Run everything from `worker/`.
-
-> Wrangler is currently v3 in this repo; it works. Upgrading to v4 is optional
-> (`npm i -D wrangler@4`) and unrelated to these steps.
+One-time setup plus the deploy steps. Run everything from the repository root.
 
 ## Prerequisites
 
@@ -49,7 +46,7 @@ npx wrangler d1 migrations apply bibliotheca-parva --remote
 To migrate the ~1,700 books from the old app:
 
 ```
-npm run import        # writes seed.sql from ../db-backup.sql.bz2
+npm run import        # writes seed.sql from db-backup.sql.bz2
 npx wrangler d1 execute bibliotheca-parva --remote --file=./seed.sql
 ```
 
@@ -94,7 +91,7 @@ Cloudflare):
 Then:
 
 ```
-npm run deploy      # builds the CSS, then wrangler deploy
+npm run deploy      # builds the app, then wrangler deploy
 ```
 
 (For a quick `*.workers.dev` smoke test instead, skip the route; the app deploys

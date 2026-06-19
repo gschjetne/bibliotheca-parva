@@ -1,7 +1,7 @@
 # Containerised dev/agent environment
 
 A sandbox for running Claude Code with `--dangerously-skip-permissions` against
-this project (the Cloudflare Workers app under `../worker/`).
+this project (the Cloudflare Workers app at the repository root).
 
 ## Quick start
 
@@ -20,9 +20,9 @@ claude --dangerously-skip-permissions
 
 | Service | Purpose |
 |---------|---------|
-| `agent` | Node 20 + Python 3.11 + Claude Code, running as non-root user `dev` (uid 1000) so `--dangerously-skip-permissions` is allowed. |
+| `agent` | Node 22 + Python 3.11 + Claude Code, running as non-root user `dev` (uid 1000) so `--dangerously-skip-permissions` is allowed. |
 
-- **Run the app**: inside the agent, `cd worker && npm run dev` →
+- **Run the app**: inside the agent, `npm run dev -- --host 0.0.0.0 --port 8000` →
   browse at <http://localhost:8055> (host port set by `WEB_HOST_PORT`).
 - **Cloudflare docs MCP**: `cloudflare-docs` (`https://docs.mcp.cloudflare.com/mcp`),
   configured in `../.mcp.json`. Check with `claude mcp list`.

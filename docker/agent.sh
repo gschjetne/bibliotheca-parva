@@ -28,7 +28,7 @@ echo ">> Seeding Claude Code credentials ..."
 
 echo
 echo ">> Stack is up:"
-echo "     App  : inside the agent -> (cd worker && npm run dev)  (http://localhost:${WEB_HOST_PORT:-8055})"
+echo "     App  : inside the agent -> npm run dev -- --host 0.0.0.0 --port 8000  (http://localhost:${WEB_HOST_PORT:-8055})"
 echo "     MCP  : cloudflare-docs (https://docs.mcp.cloudflare.com/mcp) via .mcp.json"
 echo
 echo ">> Entering agent shell. Start Claude with:"

@@ -1,5 +1,5 @@
 {
-	"name": "app",
+	"name": "bibliotheca-parva",
 	"private": true,
 	"version": "0.0.1",
 	"type": "module",
@@ -13,7 +13,7 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"gen": "wrangler types",
 		"migrate:local": "wrangler d1 migrations apply bibliotheca-parva --local",
-		"import": "python3 scripts/import_dump.py ../db-backup.sql.bz2 seed.sql",
+		"import": "python3 scripts/import_dump.py db-backup.sql.bz2 seed.sql",
 		"seed:local": "wrangler d1 execute bibliotheca-parva --local --file=./seed.sql",
 		"bootstrap:local": "npm run migrate:local && npm run import && npm run seed:local",
 		"reset:local": "rm -rf .wrangler/state/v3/d1 && npm run bootstrap:local",

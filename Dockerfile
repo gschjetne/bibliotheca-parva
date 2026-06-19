@@ -1,6 +1,6 @@
 # Dev/agent image for Bibliotheca Parva (the Cloudflare Workers app).
 #
-# Bundles Node 20 + Claude Code so it can run `claude
+# Bundles Node 22 + Claude Code so it can run `claude
 # --dangerously-skip-permissions` safely inside a container. Runs as a non-root
 # user because Claude Code refuses --dangerously-skip-permissions as root.
 # Python 3.11 (the base image) is kept for scripts/import_dump.py.
@@ -18,7 +18,7 @@ ENV PYTHONUNBUFFERED=1 \
 
 # System deps: git, curl, ca-certificates + gnupg for tooling and the Node
 # install; the remaining libraries are Chromium's runtime deps so Playwright can
-# run the app/ E2E tests (npx playwright install chromium && npm run test:e2e).
+# run the E2E tests (npx playwright install chromium && npm run test:e2e).
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         curl \
