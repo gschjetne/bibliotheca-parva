@@ -22,6 +22,36 @@ export type BookInput = {
   subjects: string[];
 };
 
+/** Coerce an untrusted JSON body (from the SvelteKit editor) into a BookInput. */
+export function normalizeBookInput(raw: unknown): BookInput {
+  const o = (raw ?? {}) as Record<string, unknown>;
+  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+  const list = (v: unknown) => (Array.isArray(v) ? v : []);
+  const y = o.published_year;
+  return {
+    title: str(o.title),
+    subtitle: str(o.subtitle),
+    original_title: str(o.original_title),
+    edition_name: str(o.edition_name),
+    description: str(o.description),
+    isbn: str(o.isbn),
+    published_by: str(o.published_by),
+    published_place: str(o.published_place),
+    published_year: y === "" || y == null || !Number.isFinite(Number(y)) ? null : Number(y),
+    languages: list(o.languages).map(String).filter(Boolean),
+    shelf_location: str(o.shelf_location),
+    subjects: list(o.subjects).map(String).map((s) => s.trim()).filter(Boolean),
+    contributors: list(o.contributors)
+      .map((c) => c as Record<string, unknown>)
+      .filter((c) => typeof c.name === "string" && c.name.trim() && typeof c.role === "string")
+      .map((c) => ({
+        name: (c.name as string).trim(),
+        role: c.role as string,
+        personId: typeof c.personId === "number" ? c.personId : undefined,
+      })),
+  };
+}
+
 // Textarea field name -> contribution role.
 export const ROLE_FIELDS: [string, string][] = [
   ["authors", "author"],

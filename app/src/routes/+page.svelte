@@ -27,13 +27,18 @@
 	});
 </script>
 
-<div class="flex justify-between">
+<div class="flex justify-between items-center">
 	<input
 		class="border border-slate-500 shadow-inner rounded-full w-80 text-xs p-2 m-1"
 		type="search"
 		placeholder="Search"
 		bind:value={query}
 	/>
+	<a
+		href="/add"
+		class="border border-slate-500 bg-sky-600 text-white shadow-md p-2 m-1 font-sans font-bold text-xs uppercase rounded-full"
+		>Add a book</a
+	>
 </div>
 
 <table class="table-fixed text-xs border border-slate-500 mt-5 w-full shadow-md">

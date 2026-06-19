@@ -4,6 +4,7 @@ import {
   listOptions,
   parseBookForm,
   groupContributorsByRole,
+  normalizeBookInput,
 } from "./review";
 import type { Candidate } from "./providers";
 
@@ -96,5 +97,38 @@ describe("parseBookForm", () => {
       { name: "Alan Lee", role: "illustrator" },
       { name: "Åke Ohlmarks", role: "translator" },
     ]);
+  });
+});
+
+describe("normalizeBookInput (editor JSON payload)", () => {
+  it("coerces strings, year, arrays, and preserves contributor personId", () => {
+    const input = normalizeBookInput({
+      title: "  Invisible Cities  ",
+      published_year: "1972",
+      isbn: "9780156453806",
+      languages: ["eng", ""],
+      subjects: [" Fiction ", ""],
+      contributors: [
+        { name: " Italo Calvino ", role: "author", personId: 42 },
+        { name: "William Weaver", role: "translator" },
+        { name: "", role: "author" }, // dropped (blank name)
+      ],
+    });
+    expect(input.title).toBe("Invisible Cities");
+    expect(input.published_year).toBe(1972);
+    expect(input.languages).toEqual(["eng"]);
+    expect(input.subjects).toEqual(["Fiction"]);
+    expect(input.contributors).toEqual([
+      { name: "Italo Calvino", role: "author", personId: 42 },
+      { name: "William Weaver", role: "translator", personId: undefined },
+    ]);
+  });
+
+  it("blank/garbage year and missing fields become null/empty", () => {
+    const input = normalizeBookInput({ published_year: "n/a" });
+    expect(input.title).toBeNull();
+    expect(input.published_year).toBeNull();
+    expect(input.contributors).toEqual([]);
+    expect(input.languages).toEqual([]);
   });
 });

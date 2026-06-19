@@ -19,7 +19,7 @@ export type EditableBook = {
   published_year: number | null;
   languages: string | null;
   shelf_location: string | null;
-  contributors: { name_as_printed: string; role: string; position: number }[];
+  contributors: { name_as_printed: string; role: string; position: number; person_id: number | null }[];
   subjects: string[];
 };
 
@@ -190,11 +190,11 @@ export async function getBookForEdit(
   if (!book) return null;
   const cr = await db
     .prepare(
-      `SELECT name_as_printed, role, position FROM contribution
+      `SELECT name_as_printed, role, position, person_id FROM contribution
        WHERE book_id = ? ORDER BY position`,
     )
     .bind(id)
-    .all<{ name_as_printed: string; role: string; position: number }>();
+    .all<{ name_as_printed: string; role: string; position: number; person_id: number | null }>();
   const sr = await db
     .prepare(
       `SELECT s.name FROM book_subject bs JOIN subject s ON s.id = bs.subject_id
