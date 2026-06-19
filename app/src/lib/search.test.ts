@@ -76,8 +76,8 @@ describe("formatContributors", () => {
 });
 
 describe("formatLanguages", () => {
-  it("joins stored JSON codes", () => {
-    expect(formatLanguages('["eng","swe"]')).toBe("eng, swe");
+  it("joins stored JSON codes as display names", () => {
+    expect(formatLanguages('["eng","swe"]')).toBe("English, Swedish");
   });
   it("handles null/garbage", () => {
     expect(formatLanguages(null)).toBe("");

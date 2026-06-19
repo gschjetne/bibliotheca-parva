@@ -29,6 +29,26 @@ export async function suggestContributors(
   return r.results;
 }
 
+/** Distinct existing values of a free-text book column matching `query`. */
+export async function suggestText(
+  db: D1Database,
+  column: "published_by" | "published_place",
+  query: string,
+  limit = 10,
+): Promise<string[]> {
+  const q = query.trim();
+  if (!q) return [];
+  const r = await db
+    .prepare(
+      `SELECT DISTINCT ${column} AS v FROM book
+       WHERE ${column} IS NOT NULL AND ${column} LIKE ?1
+       ORDER BY ${column} LIMIT ?2`,
+    )
+    .bind(`%${q}%`, limit)
+    .all<{ v: string }>();
+  return r.results.map((x) => x.v);
+}
+
 export type ResultBook = {
   id: number;
   title: string | null;

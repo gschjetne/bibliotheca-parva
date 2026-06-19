@@ -2,6 +2,7 @@
 // contributors render. No I/O — see test/search.test.ts. DB execution lives in
 // db.ts; behaviour is pinned by features/search.feature.
 import { fold } from "./fold";
+import { languageName } from "./languages";
 
 export type QueryKind =
   | { type: "empty" }
@@ -60,12 +61,12 @@ export function formatContributors(cs: Contribution[]): string {
     .join(", ");
 }
 
-/** Parse the stored JSON languages array into display codes. */
+/** Parse the stored JSON languages array into display names (e.g. ["nob"] -> "Norwegian Bokmål"). */
 export function formatLanguages(json: string | null): string {
   if (!json) return "";
   try {
     const codes = JSON.parse(json) as unknown;
-    return Array.isArray(codes) ? codes.join(", ") : "";
+    return Array.isArray(codes) ? codes.map((c) => languageName(String(c))).join(", ") : "";
   } catch {
     return "";
   }
