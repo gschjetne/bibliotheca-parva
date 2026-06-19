@@ -14,7 +14,7 @@ ARG USERNAME=dev
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    NODE_MAJOR=20
+    NODE_MAJOR=22
 
 # System deps: git, curl, ca-certificates + gnupg for tooling and the Node install.
 RUN apt-get update && apt-get install -y --no-install-recommends \
