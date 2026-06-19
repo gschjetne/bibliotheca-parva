@@ -1,10 +1,10 @@
 import { Hono } from "hono";
 import { searchBooks } from "./db";
-import { createBook } from "./mutate";
+import { createBook, updateBook, deleteBook, getBookForEdit } from "./mutate";
 import { parseBookForm } from "./review";
 import { gatherCandidates } from "./providers";
 import { isValidIsbn, toIsbn13 } from "./isbn";
-import { searchPage, resultRows, reviewForm } from "./views";
+import { searchPage, resultRows, reviewForm, editForm } from "./views";
 
 export type Bindings = {
   DB: D1Database;
@@ -85,9 +85,25 @@ app.post("/books", async (c) => {
   return c.redirect(`/books/${id}/edit`, 303);
 });
 
-// Placeholder — the edit screen arrives in the next iteration.
-app.get("/books/:id/edit", (c) =>
-  c.html(`<p>Book ${c.req.param("id")} saved. Edit screen coming soon. <a href="/">home</a></p>`),
-);
+// Edit an existing book.
+app.get("/books/:id/edit", async (c) => {
+  const id = Number(c.req.param("id"));
+  const book = await getBookForEdit(c.env.DB, id);
+  if (!book) return c.notFound();
+  return c.html(editForm(book));
+});
+
+app.post("/books/:id", async (c) => {
+  const id = Number(c.req.param("id"));
+  const body = await c.req.parseBody();
+  const input = parseBookForm((k) => body[k]?.toString());
+  await updateBook(c.env.DB, id, input);
+  return c.redirect(`/books/${id}/edit`, 303);
+});
+
+app.post("/books/:id/delete", async (c) => {
+  await deleteBook(c.env.DB, Number(c.req.param("id")));
+  return c.redirect("/", 303);
+});
 
 export default app;

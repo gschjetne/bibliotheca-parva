@@ -2,7 +2,8 @@ import { html, raw } from "hono/html";
 import type { HtmlEscapedString } from "hono/utils/html";
 import type { ResultBook } from "./db";
 import type { Candidate } from "./providers";
-import { scalarOptions, listOptions } from "./review";
+import type { EditableBook } from "./mutate";
+import { scalarOptions, listOptions, groupContributorsByRole } from "./review";
 
 function layout(title: string, body: HtmlEscapedString | Promise<HtmlEscapedString>) {
   return html`<!doctype html>
@@ -110,47 +111,106 @@ function chips(opts: { source: string; value: string }[]) {
   )}</div>`;
 }
 
-/** The add/review screen. `candidates` is empty for a manual (no-ISBN) add. */
-export function reviewForm(candidates: Candidate[], isbn: string | null) {
+type FormValues = Record<string, string>;
+
+function emptyValues(): FormValues {
+  const v: FormValues = {
+    isbn: "",
+    languages: "",
+    shelf_location: "",
+    foreword: "",
+    subjects: "",
+  };
+  for (const [k] of SCALARS) v[k] = "";
+  for (const [, f] of LISTS) v[f] = "";
+  return v;
+}
+
+function valuesFromCandidates(cands: Candidate[], isbn: string | null): FormValues {
+  const v = emptyValues();
+  v.isbn = isbn ?? "";
+  for (const [k] of SCALARS) v[k] = scalarOptions(cands, k)[0]?.value ?? "";
+  for (const [k, f] of LISTS) v[f] = listOptions(cands, k)[0]?.names.join("\n") ?? "";
+  return v;
+}
+
+function valuesFromBook(b: EditableBook): FormValues {
+  const v = emptyValues();
+  v.isbn = b.isbn_13 ?? b.isbn_10 ?? "";
+  v.title = b.title ?? "";
+  v.subtitle = b.subtitle ?? "";
+  v.original_title = b.original_title ?? "";
+  v.edition_name = b.edition_name ?? "";
+  v.published_by = b.published_by ?? "";
+  v.published_place = b.published_place ?? "";
+  v.published_year = b.published_year?.toString() ?? "";
+  v.description = b.description ?? "";
+  v.shelf_location = b.shelf_location ?? "";
+  v.subjects = b.subjects.join("\n");
+  try {
+    const codes = JSON.parse(b.languages ?? "[]");
+    v.languages = Array.isArray(codes) ? codes.join(", ") : "";
+  } catch {
+    v.languages = "";
+  }
+  Object.assign(v, groupContributorsByRole(b.contributors));
+  return v;
+}
+
+type Html = HtmlEscapedString | Promise<HtmlEscapedString>;
+
+type FormOpts = {
+  heading: Html;
+  intro?: Html;
+  action: string;
+  values: FormValues;
+  candidates: Candidate[];
+  deleteAction?: string;
+};
+
+function renderForm(o: FormOpts) {
+  const { values, candidates } = o;
+
   const scalarRow = (key: string, label: string, type: string) => {
-    const opts = scalarOptions(candidates, key);
-    const value = opts[0]?.value ?? "";
+    const value = values[key] ?? "";
     const control =
       type === "textarea"
         ? html`<textarea name="${key}" rows="3">${value}</textarea>`
         : html`<input type="${type === "number" ? "number" : "text"}" name="${key}" value="${value}" />`;
-    return html`<div class="field"><label>${label}</label>${control}${chips(opts)}</div>`;
+    return html`<div class="field"><label>${label}</label>${control}${chips(scalarOptions(candidates, key))}</div>`;
   };
 
   const listRow = (key: string, field: string, label: string) => {
-    const opts = listOptions(candidates, key);
-    const value = opts[0]?.names.join("\n") ?? "";
-    const opt2 = opts.map((o) => ({ source: o.source, value: o.names.join("\n") }));
+    const opt2 = listOptions(candidates, key).map((o) => ({
+      source: o.source,
+      value: o.names.join("\n"),
+    }));
     return html`<div class="field">
       <label>${label} <small class="muted">(one per line)</small></label>
-      <textarea name="${field}" rows="2">${value}</textarea>
+      <textarea name="${field}" rows="2">${values[field] ?? ""}</textarea>
       ${chips(opt2)}
     </div>`;
   };
 
   return layout(
-    "Add a book — Bibliotheca Parva",
-    html`<h1>${isbn ? html`Review new book` : html`Add a book`}</h1>
-    ${isbn ? html`<p class="muted">From ISBN ${isbn}. Pick the best value for each field, or edit freely.</p>` : raw("")}
-    ${candidates.length === 0 && isbn
-      ? html`<p class="muted">No bibliographic source recognised this ISBN — fill in the details by hand.</p>`
-      : raw("")}
-    <form method="post" action="/books" class="bookform">
-      <input type="hidden" name="redirect" value="edit" />
-      <div class="field"><label>ISBN</label><input type="text" name="isbn" value="${isbn ?? ""}" /></div>
+    "Bibliotheca Parva",
+    html`<h1>${o.heading}</h1>
+    ${o.intro ? html`<p class="muted">${o.intro}</p>` : raw("")}
+    <form method="post" action="${o.action}" class="bookform">
+      <div class="field"><label>ISBN</label><input type="text" name="isbn" value="${values.isbn}" /></div>
       ${SCALARS.map(([k, l, t]) => scalarRow(k, l, t))}
       ${LISTS.map(([k, f, l]) => listRow(k, f, l))}
-      <div class="field"><label>Foreword by <small class="muted">(one per line)</small></label><textarea name="foreword" rows="2"></textarea></div>
-      <div class="field"><label>Languages <small class="muted">(comma-separated codes)</small></label><input type="text" name="languages" /></div>
-      <div class="field"><label>Shelf location</label><input type="text" name="shelf_location" /></div>
+      <div class="field"><label>Foreword by <small class="muted">(one per line)</small></label><textarea name="foreword" rows="2">${values.foreword}</textarea></div>
+      <div class="field"><label>Languages <small class="muted">(comma-separated codes)</small></label><input type="text" name="languages" value="${values.languages}" /></div>
+      <div class="field"><label>Shelf location</label><input type="text" name="shelf_location" value="${values.shelf_location}" /></div>
       <button type="submit">Save book</button>
       <a href="/" style="margin-left:.6rem">cancel</a>
     </form>
+    ${o.deleteAction
+      ? html`<form method="post" action="${o.deleteAction}" onsubmit="return confirm('Delete this book?')" style="margin-top:1rem">
+          <button type="submit" style="color:#b91c1c">Delete book</button>
+        </form>`
+      : raw("")}
     <style>
       .bookform { max-width: 40rem; }
       .field { margin: .7rem 0; display: flex; flex-direction: column; gap: .25rem; }
@@ -166,4 +226,31 @@ export function reviewForm(candidates: Candidate[], isbn: string | null) {
       }
     </script>`,
   );
+}
+
+/** The add/review screen. `candidates` is empty for a manual (no-ISBN) add. */
+export function reviewForm(candidates: Candidate[], isbn: string | null) {
+  const intro = isbn
+    ? candidates.length === 0
+      ? html`No bibliographic source recognised this ISBN — fill in the details by hand.`
+      : html`From ISBN ${isbn}. Pick the best value for each field, or edit freely.`
+    : undefined;
+  return renderForm({
+    heading: isbn ? html`Review new book` : html`Add a book`,
+    intro,
+    action: "/books",
+    values: valuesFromCandidates(candidates, isbn),
+    candidates,
+  });
+}
+
+/** The edit screen for an existing book. */
+export function editForm(book: EditableBook) {
+  return renderForm({
+    heading: html`Edit ${book.title ?? "untitled book"}`,
+    action: `/books/${book.id}`,
+    values: valuesFromBook(book),
+    candidates: [],
+    deleteAction: `/books/${book.id}/delete`,
+  });
 }

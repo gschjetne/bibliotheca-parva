@@ -72,6 +72,17 @@ export function listOptions(
   return out;
 }
 
+/** Group a book's contributions into newline-joined names per role field. */
+export function groupContributorsByRole(
+  rows: { name_as_printed: string; role: string }[],
+): Record<string, string> {
+  const lists: Record<string, string[]> = {};
+  for (const r of rows) (lists[r.role] ??= []).push(r.name_as_printed);
+  const out: Record<string, string> = {};
+  for (const [field, role] of ROLE_FIELDS) out[field] = (lists[role] ?? []).join("\n");
+  return out;
+}
+
 type Getter = (key: string) => string | undefined | null;
 
 /** Parse a submitted book form into a BookInput. */

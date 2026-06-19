@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { scalarOptions, listOptions, parseBookForm } from "../src/review";
+import {
+  scalarOptions,
+  listOptions,
+  parseBookForm,
+  groupContributorsByRole,
+} from "../src/review";
 import type { Candidate } from "../src/providers";
 
 const CANDS: Candidate[] = [
@@ -69,5 +74,27 @@ describe("parseBookForm", () => {
     expect(input.title).toBeNull();
     expect(input.published_year).toBeNull();
     expect(input.contributors).toEqual([]);
+  });
+
+  it("round-trips through groupContributorsByRole for the edit form", () => {
+    const grouped = groupContributorsByRole([
+      { name_as_printed: "J. R. R. Tolkien", role: "author" },
+      { name_as_printed: "Alan Lee", role: "illustrator" },
+      { name_as_printed: "Åke Ohlmarks", role: "translator" },
+    ]);
+    expect(grouped).toMatchObject({
+      authors: "J. R. R. Tolkien",
+      editors: "",
+      illustrators: "Alan Lee",
+      translators: "Åke Ohlmarks",
+      foreword: "",
+    });
+    // Feeding the grouped fields back through the parser preserves roles.
+    const parsed = parseBookForm((k) => grouped[k]);
+    expect(parsed.contributors).toEqual([
+      { name: "J. R. R. Tolkien", role: "author" },
+      { name: "Alan Lee", role: "illustrator" },
+      { name: "Åke Ohlmarks", role: "translator" },
+    ]);
   });
 });

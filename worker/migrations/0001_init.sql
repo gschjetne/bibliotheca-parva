@@ -66,7 +66,8 @@ CREATE TABLE book_subject (
 
 -- Full-text search. Contributor names + subjects are denormalised in here so a
 -- search for any spelling resolves to the right books. rowid == book.id.
+-- A regular (content-storing) FTS5 table so rows can be updated/deleted by
+-- rowid when a book is edited or removed.
 CREATE VIRTUAL TABLE book_fts USING fts5(
-    title, subtitle, original_title, names, subjects,
-    content=''
+    title, subtitle, original_title, names, subjects
 );
