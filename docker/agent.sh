@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# One-shot bootstrap: build the image, start db + agent, seed the database,
-# then drop you into the agent shell where you can run:
+# One-shot bootstrap: build the image, start the agent, then drop you into the
+# agent shell where you can run:
 #   claude --dangerously-skip-permissions
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -23,17 +23,13 @@ docker compose build
 echo ">> Starting services ..."
 docker compose up -d
 
-echo ">> Seeding database ..."
-docker compose exec -T agent ./docker/seed-db.sh
-
 echo ">> Seeding Claude Code credentials ..."
 ./docker/seed-auth.sh
 
 echo
 echo ">> Stack is up:"
-echo "     Postgres : localhost:5432  (db: bibliotheca_parva)"
-echo "     Django   : run inside the agent -> python manage.py runserver 0.0.0.0:8000  (http://localhost:8000)"
-echo "     MCP      : cloudflare-docs (https://docs.mcp.cloudflare.com/mcp) via .mcp.json"
+echo "     App  : inside the agent -> (cd worker && npm run dev)  (http://localhost:${WEB_HOST_PORT:-8055})"
+echo "     MCP  : cloudflare-docs (https://docs.mcp.cloudflare.com/mcp) via .mcp.json"
 echo
 echo ">> Entering agent shell. Start Claude with:"
 echo "     claude --dangerously-skip-permissions"

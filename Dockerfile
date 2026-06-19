@@ -1,9 +1,9 @@
-# Dev/agent image for Bibliotheca Parva.
+# Dev/agent image for Bibliotheca Parva (the Cloudflare Workers app).
 #
-# Bundles everything needed to run the Django app, talk to Postgres, and run
-# Claude Code (`claude --dangerously-skip-permissions`) safely inside a
-# container. Runs as a non-root user because Claude Code refuses to use
-# --dangerously-skip-permissions with root privileges.
+# Bundles Node 20 + Claude Code so it can run `claude
+# --dangerously-skip-permissions` safely inside a container. Runs as a non-root
+# user because Claude Code refuses --dangerously-skip-permissions as root.
+# Python 3.11 (the base image) is kept for scripts/import_dump.py.
 FROM python:3.11-slim-bookworm
 
 # Match the host user so bind-mounted files (project, ~/.claude) keep their
@@ -14,19 +14,10 @@ ARG USERNAME=dev
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1 \
     NODE_MAJOR=20
 
-# System deps:
-# - build-essential + libpq-dev: build psycopg2 (non-binary) from requirements
-# - postgresql-client: psql / pg_dump for seeding and poking at the DB
-# - bzip2: decompress db-backup.sql.bz2
-# - git, curl, ca-certificates: tooling + Node install
+# System deps: git, curl, ca-certificates + gnupg for tooling and the Node install.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential \
-        libpq-dev \
-        postgresql-client \
-        bzip2 \
         git \
         curl \
         ca-certificates \
@@ -51,10 +42,6 @@ RUN if ! getent group "${GID}" >/dev/null; then groupadd --gid "${GID}" "${USERN
     # inherit ownership/content from the image path on first creation).
     && mkdir -p "/home/${USERNAME}/.claude" \
     && chown -R "${UID}:${GID}" "/home/${USERNAME}/.claude"
-
-# Python deps (as root, into the system site-packages so all users can use them).
-COPY requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 WORKDIR /workspace
 USER ${UID}:${GID}
