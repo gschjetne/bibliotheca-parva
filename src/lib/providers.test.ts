@@ -28,6 +28,9 @@ describe("reorderName", () => {
     expect(reorderName("Tolkien, J. R. R.")).toBe("J. R. R. Tolkien");
     expect(reorderName("Murakami")).toBe("Murakami");
   });
+  it("trims the dangling space from a trailing comma", () => {
+    expect(reorderName("Tolkien, ")).toBe("Tolkien");
+  });
 });
 
 describe("Open Library provider", () => {
@@ -59,6 +62,51 @@ describe("Open Library provider", () => {
 
   it("returns null when the ISBN is unknown (404)", async () => {
     expect(await openLibrary.fetch(ISBN, mockFetch({}))).toBeNull();
+  });
+
+  it("parses every field, joining multi-valued ones with ', '", async () => {
+    const f = mockFetch({
+      [`/isbn/${ISBN}.json`]: {
+        body: JSON.stringify({
+          title: "The Lord of the Rings",
+          subtitle: "being three volumes",
+          edition_name: "50th Anniversary",
+          publishers: ["Allen & Unwin", "HarperCollins"],
+          publish_places: ["London", "Boston"],
+          publish_date: "2004",
+          description: "An epic.", // plain-string description branch
+          authors: [{ key: "/authors/OL1A" }, { key: "/authors/OL2A" }],
+        }),
+      },
+      "/authors/OL1A.json": { body: JSON.stringify({ name: "J. R. R. Tolkien" }) },
+      "/authors/OL2A.json": { body: JSON.stringify({ name: "Christopher Tolkien" }) },
+    });
+    // toEqual (not toMatchObject) so a stray/renamed field fails the test.
+    expect(await openLibrary.fetch(ISBN, f)).toEqual({
+      source: "Open Library",
+      title: "The Lord of the Rings",
+      subtitle: "being three volumes",
+      edition_name: "50th Anniversary",
+      published_by: "Allen & Unwin, HarperCollins",
+      published_place: "London, Boston",
+      published_year: 2004,
+      description: "An epic.",
+      authors: ["J. R. R. Tolkien", "Christopher Tolkien"],
+    });
+  });
+
+  it("skips author entries that are null, keyless, or whose sub-fetch fails", async () => {
+    const f = mockFetch({
+      [`/isbn/${ISBN}.json`]: {
+        body: JSON.stringify({
+          title: "Anon",
+          authors: [null, { name: "no key here" }, { key: "/authors/OLX" }],
+        }),
+      },
+      // /authors/OLX returns 404 (default) -> name not collected
+    });
+    const c = await openLibrary.fetch(ISBN, f);
+    expect(c).toEqual({ source: "Open Library", title: "Anon" });
   });
 });
 
@@ -103,6 +151,50 @@ describe("Bibbi provider", () => {
     });
     expect(await bibbi.fetch(ISBN, f)).toBeNull();
   });
+
+  it("prefers the matching publication's title and skips subjects lacking a Bokmål name", async () => {
+    const f = mockFetch({
+      "bibliografisk.bs.no": {
+        body: JSON.stringify({
+          total: 1,
+          works: [
+            {
+              name: "Work-level title",
+              creator: [{ name: "Murakami, Haruki" }, { name: "" }], // blank dropped
+              publications: [
+                { isbn: "0000000000000", name: "Wrong edition" }, // not the queried isbn
+                {
+                  isbn: ISBN,
+                  name: "Edition title", // overrides the work-level name
+                  about: [null, { name: { nob: "Kjærlighet" } }, { name: { eng: "Love" } }],
+                  genre: [{ name: {} }, null, { name: { nob: "Roman" } }],
+                },
+              ],
+            },
+          ],
+        }),
+      },
+    });
+    // Only the nob-named subjects survive; title comes from the matching pub.
+    expect(await bibbi.fetch(ISBN, f)).toEqual({
+      source: "Bibbi",
+      title: "Edition title",
+      authors: ["Haruki Murakami"],
+      subjects: ["Kjærlighet", "Roman"],
+    });
+  });
+
+  it("keeps the work title when no publication matches the ISBN", async () => {
+    const f = mockFetch({
+      "bibliografisk.bs.no": {
+        body: JSON.stringify({
+          total: 1,
+          works: [{ name: "Only the work", publications: [{ isbn: "9999999999999" }] }],
+        }),
+      },
+    });
+    expect(await bibbi.fetch(ISBN, f)).toEqual({ source: "Bibbi", title: "Only the work" });
+  });
 });
 
 describe("Libris refworks parser", () => {
@@ -135,6 +227,50 @@ describe("Libris refworks parser", () => {
   it("returns null when no SN line matches the ISBN", () => {
     const block = ["T1 Some Other Book", "SN 9999999999999"].join("\r\n");
     expect(parseRefworks(block, ISBN)).toBeNull();
+  });
+
+  it("maps every field type, joins multi-valued publisher/place, and matches a dashed SN", () => {
+    const block = [
+      "T1 The Lord of the Rings",
+      "T2 the subtitle",
+      "ED Second edition", // default-branch field (edition_name)
+      "AB A description.", // default-branch field (description)
+      "A1 Tolkien, J. R. R.",
+      "A1 Tolkien, Christopher",
+      "A2 Anderson, Douglas A.",
+      "K1 Fantasy",
+      "K1 Middle-earth",
+      "PB Allen & Unwin",
+      "PB HarperCollins",
+      "PP London",
+      "PP Boston",
+      "YR 1954",
+      "ZZ ignored unknown key",
+      "x", // shorter than 4 chars -> skipped
+      "SN 978-0-261-10357-3", // dashed form still matches the queried ISBN
+    ].join("\r\n");
+    expect(parseRefworks(block, ISBN)).toEqual({
+      source: "Libris",
+      title: "The Lord of the Rings",
+      subtitle: "the subtitle",
+      edition_name: "Second edition",
+      description: "A description.",
+      authors: ["J. R. R. Tolkien", "Christopher Tolkien"],
+      editors: ["Douglas A. Anderson"],
+      subjects: ["Fantasy", "Middle-earth"],
+      published_by: "Allen & Unwin, HarperCollins",
+      published_place: "London, Boston",
+      published_year: 1954,
+    });
+  });
+
+  it("returns null when the only matching line is the SN (no other data)", () => {
+    expect(parseRefworks(`SN ${ISBN}`, ISBN)).toBeNull();
+  });
+
+  it("processes a field line of exactly the minimum length (4 chars)", () => {
+    const block = ["T1 X", `SN ${ISBN}`].join("\r\n"); // "T1 X" is 4 chars
+    expect(parseRefworks(block, ISBN)).toEqual({ source: "Libris", title: "X" });
   });
 });
 

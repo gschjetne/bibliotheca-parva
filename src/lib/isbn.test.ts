@@ -48,4 +48,26 @@ describe("isbn canonicalisation and conversion", () => {
     expect(toIsbn13("1234567890")).toBeNull();
     expect(toIsbn10("nope")).toBeNull();
   });
+
+  it("handles an X check digit (both cases)", () => {
+    // 097522980X is a valid ISBN-10 whose check digit is X.
+    expect(isValidIsbn("097522980X")).toBe(true);
+    expect(isValidIsbn("097522980x")).toBe(true); // clean() upper-cases
+    // Converting its ISBN-13 back yields the X check digit (isbn10CheckDigit).
+    expect(toIsbn10("9780975229804")).toBe("097522980X");
+    expect(toIsbn13("097522980X")).toBe("9780975229804");
+  });
+
+  it("toIsbn10 returns an already-valid ISBN-10 unchanged, and null otherwise", () => {
+    expect(toIsbn10("0261103571")).toBe("0261103571");
+    // 978-prefixed but invalid ISBN-13 -> not convertible -> null (not "0000000000")
+    expect(toIsbn10("9780000000000")).toBeNull();
+  });
+
+  it("validation is anchored to the whole string", () => {
+    // valid 13-digit body with a trailing char must be rejected
+    expect(isValidIsbn("9780261103573X")).toBe(false);
+    // valid 10-digit body with a trailing char must be rejected
+    expect(isValidIsbn("0261103571X")).toBe(false);
+  });
 });

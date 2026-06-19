@@ -134,4 +134,27 @@ describe("verifyAccessJwt", () => {
     expect(await verifyAccessJwt("not.a.jwt", o.verify)).toBeNull();
     expect(await verifyAccessJwt("garbage", o.verify)).toBeNull();
   });
+
+  it("defaults sub to an empty string when the token has no sub claim", async () => {
+    const o = opts();
+    const token = await mint({ iss: o.issuer, aud: "app-aud", email: "ada@home.test", exp: NOW_SEC + 600 });
+    expect(await verifyAccessJwt(token, o.verify)).toEqual({ email: "ada@home.test", sub: "" });
+  });
+
+  it("rejects a token with no email claim", async () => {
+    const o = opts();
+    const token = await mint({ iss: o.issuer, aud: "app-aud", sub: "abc", exp: NOW_SEC + 600 });
+    expect(await verifyAccessJwt(token, o.verify)).toBeNull();
+  });
+
+  it("uses the real clock when no `now` is injected", async () => {
+    const o = opts();
+    const { now: _omit, ...verifyWithoutNow } = o.verify;
+    // exp far in the future -> valid against the actual current time.
+    const future = await mint({ iss: o.issuer, aud: "app-aud", email: "ada@home.test", exp: 4_102_444_800 });
+    expect(await verifyAccessJwt(future, verifyWithoutNow)).toMatchObject({ email: "ada@home.test" });
+    // exp in the past (NOW_SEC is 2023) -> the real clock rejects it.
+    const expired = await mint({ iss: o.issuer, aud: "app-aud", email: "ada@home.test", exp: NOW_SEC });
+    expect(await verifyAccessJwt(expired, verifyWithoutNow)).toBeNull();
+  });
 });

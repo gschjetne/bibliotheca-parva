@@ -31,6 +31,24 @@ describe("classifyQuery", () => {
     expect(classifyQuery("towers")).toEqual({ type: "text", match: '"towers"*' });
     expect(classifyQuery("1984")).toEqual({ type: "text", match: '"1984"*' });
   });
+
+  it("recognises an ISBN-10 ending in X, case-insensitively", () => {
+    expect(classifyQuery("030640615X")).toEqual({ type: "isbn", prefix: "030640615X" });
+    expect(classifyQuery("030640615x")).toEqual({ type: "isbn", prefix: "030640615X" });
+  });
+
+  it("requires the WHOLE query to be ISBN-shaped (anchored), else text", () => {
+    // leading non-digits -> not an ISBN (kills a `^`-removal mutant)
+    expect(classifyQuery("ab12345678").type).toBe("text");
+    // trailing junk -> not an ISBN (kills a `$`-removal mutant)
+    expect(classifyQuery("12345678ab").type).toBe("text");
+    expect(classifyQuery("030640615Xyz").type).toBe("text");
+    expect(classifyQuery("yz030640615X").type).toBe("text");
+  });
+
+  it("a non-empty query with no usable tokens is empty", () => {
+    expect(classifyQuery("...")).toEqual({ type: "empty" });
+  });
 });
 
 describe("buildFtsMatch", () => {
@@ -73,6 +91,16 @@ describe("formatContributors", () => {
     ];
     expect(formatContributors(cs)).toBe("First, Second");
   });
+
+  it("does not mutate (reorder) the caller's array", () => {
+    const cs = [
+      { name_as_printed: "Second", role: "author", position: 1 },
+      { name_as_printed: "First", role: "author", position: 0 },
+    ];
+    formatContributors(cs);
+    // The input order is untouched (the function sorts a copy).
+    expect(cs.map((c) => c.name_as_printed)).toEqual(["Second", "First"]);
+  });
 });
 
 describe("formatLanguages", () => {
@@ -82,5 +110,6 @@ describe("formatLanguages", () => {
   it("handles null/garbage", () => {
     expect(formatLanguages(null)).toBe("");
     expect(formatLanguages("not json")).toBe("");
+    expect(formatLanguages('{"not":"an array"}')).toBe(""); // valid JSON, non-array
   });
 });
