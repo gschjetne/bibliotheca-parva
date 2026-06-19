@@ -16,12 +16,18 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     NODE_MAJOR=22
 
-# System deps: git, curl, ca-certificates + gnupg for tooling and the Node install.
+# System deps: git, curl, ca-certificates + gnupg for tooling and the Node
+# install; the remaining libraries are Chromium's runtime deps so Playwright can
+# run the app/ E2E tests (npx playwright install chromium && npm run test:e2e).
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         curl \
         ca-certificates \
         gnupg \
+        fonts-liberation \
+        libnss3 libnspr4 libdbus-1-3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
+        libdrm2 libatspi2.0-0 libxcomposite1 libxdamage1 libxext6 libxfixes3 \
+        libxrandr2 libgbm1 libxkbcommon0 libpango-1.0-0 libcairo2 libasound2 \
     && mkdir -p /etc/apt/keyrings \
     && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
         | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \

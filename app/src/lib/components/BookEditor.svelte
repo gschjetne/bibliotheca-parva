@@ -179,9 +179,9 @@
 						{:else if row.widget === 'suggest' && row.key && row.endpoint}
 							<SuggestInput bind:value={rec[row.key]} endpoint={row.endpoint} />
 						{:else if row.widget === 'textarea' && row.key}
-							<textarea class="border border-slate-400 rounded text-xs p-1 w-full" rows="3" bind:value={rec[row.key]}></textarea>
+							<textarea name={row.key} class="border border-slate-400 rounded text-xs p-1 w-full" rows="3" bind:value={rec[row.key]}></textarea>
 						{:else if row.key}
-							<input class="border border-slate-400 rounded-full text-xs p-1 w-full" type={row.widget === 'number' ? 'number' : 'text'} bind:value={rec[row.key]} />
+							<input name={row.key} class="border border-slate-400 rounded-full text-xs p-1 w-full" type={row.widget === 'number' ? 'number' : 'text'} bind:value={rec[row.key]} />
 						{/if}
 					</td>
 					{#each SOURCES as s (s.name)}
