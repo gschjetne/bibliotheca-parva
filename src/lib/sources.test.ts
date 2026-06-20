@@ -17,11 +17,11 @@ describe('fetchSources (progressive, per-source)', () => {
 	it('reports loading then a result for each source independently', async () => {
 		const f = mockFetch({
 			[`/isbn/${ISBN}.json`]: {
-				body: JSON.stringify({ title: 'Fellowship of the Ring' })
+				body: JSON.stringify({ title: 'Fellowship of the Ring' }),
 			},
 			'libris.kb.se': {
-				body: ['T1 The Fellowship of the Ring', `SN ${ISBN}`].join('\r\n')
-			}
+				body: ['T1 The Fellowship of the Ring', `SN ${ISBN}`].join('\r\n'),
+			},
 			// bibbi: no route -> 404 -> null
 		});
 
@@ -61,13 +61,13 @@ describe('candidateField', () => {
 	it('returns display and copy for a scalar', () => {
 		expect(candidateField({ source: 'X', title: 'The Two Towers' }, 'title')).toEqual({
 			display: 'The Two Towers',
-			copy: 'The Two Towers'
+			copy: 'The Two Towers',
 		});
 	});
 	it('joins lists with comma to show, newline to copy', () => {
 		expect(candidateField({ source: 'X', authors: ['A. One', 'B. Two'] }, 'authors')).toEqual({
 			display: 'A. One, B. Two',
-			copy: 'A. One\nB. Two'
+			copy: 'A. One\nB. Two',
 		});
 	});
 	it('returns null when the source has nothing for the field', () => {

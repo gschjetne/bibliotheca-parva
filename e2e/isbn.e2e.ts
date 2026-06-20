@@ -42,7 +42,7 @@ test('an ISBN with a bad check digit is rejected', async ({ page }) => {
 // isbn_handling.feature: "A book can be looked up by any form of its ISBN" —
 // the 10-digit, dashed form is accepted and the lookup proceeds.
 test('a valid ISBN in dashed 10-digit form is accepted and the lookup proceeds', async ({
-	page
+	page,
 }) => {
 	await page.goto('/add');
 	await page.getByPlaceholder('ISBN').fill('0-261-10357-1');

@@ -29,9 +29,9 @@ services:
     ports:
       # Host ${WEB_HOST_PORT} -> container 8000 (the vite dev server; run it with
       # `npm run dev -- --host 0.0.0.0 --port 8000`).
-      - "${WEB_HOST_PORT:-8055}:8000"
+      - '${WEB_HOST_PORT:-8055}:8000'
     # Keep the container alive so you can exec into it interactively.
-    command: ["sleep", "infinity"]
+    command: ['sleep', 'infinity']
 
 volumes:
   claude_home:

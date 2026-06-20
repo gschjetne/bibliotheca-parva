@@ -14,7 +14,7 @@ const SUBJECT = 'Zzqxsubject Topic';
 
 async function createBlankBook(request: APIRequestContext): Promise<number> {
 	const res = await request.post('/api/books', {
-		data: { title: TITLE, isbn: null, languages: [], subjects: [], contributors: [] }
+		data: { title: TITLE, isbn: null, languages: [], subjects: [], contributors: [] },
 	});
 	expect(res.ok()).toBeTruthy();
 	const { id } = (await res.json()) as { id: number };
@@ -23,7 +23,7 @@ async function createBlankBook(request: APIRequestContext): Promise<number> {
 
 test('edit a book: record shelf location and a contributor, then delete it', async ({
 	page,
-	request
+	request,
 }) => {
 	const id = await createBlankBook(request);
 
@@ -72,7 +72,9 @@ test('edit a book: record shelf location and a contributor, then delete it', asy
 	await expect(page).toHaveURL(/\/$/);
 
 	await page.getByPlaceholder('Search').fill(SEARCH_TOKEN);
-	await page.waitForResponse((r) => r.url().includes('/api/search') && r.url().includes(SEARCH_TOKEN));
+	await page.waitForResponse(
+		(r) => r.url().includes('/api/search') && r.url().includes(SEARCH_TOKEN),
+	);
 	await expect(page.getByText(TITLE)).toHaveCount(0);
 });
 
@@ -81,7 +83,7 @@ test('edit a book: record shelf location and a contributor, then delete it', asy
 // link, saving hands the librarian back to those results, not the form.
 test('saving an edited book returns to the page the librarian came from', async ({
 	page,
-	request
+	request,
 }) => {
 	const id = await createBlankBook(request);
 
@@ -105,7 +107,7 @@ test('saving an edited book returns to the page the librarian came from', async 
 	await expect(toast).toContainText('Book saved');
 	await expect(toast.getByRole('link', { name: /continue editing/i })).toHaveAttribute(
 		'href',
-		`/books/${id}/edit`
+		`/books/${id}/edit`,
 	);
 
 	// The edit really was saved.
@@ -120,7 +122,7 @@ test('saving an edited book returns to the page the librarian came from', async 
 // the chip shows that name while the value saved is a stable ISO 639-3 code.
 test('record a language from the friendly picker, stored as a stable code', async ({
 	page,
-	request
+	request,
 }) => {
 	const id = await createBlankBook(request);
 	await page.goto(`/books/${id}/edit`);
@@ -135,7 +137,7 @@ test('record a language from the friendly picker, stored as a stable code', asyn
 	// What goes over the wire on save is the stable code ("eng"), not "English".
 	const [req] = await Promise.all([
 		page.waitForRequest((r) => r.url().endsWith(`/api/books/${id}`) && r.method() === 'PUT'),
-		page.getByRole('button', { name: 'Save book' }).click()
+		page.getByRole('button', { name: 'Save book' }).click(),
 	]);
 	expect(JSON.parse(req.postData() ?? '{}').languages).toEqual(['eng']);
 
@@ -175,7 +177,10 @@ test('the language picker refuses an unrecognised language', async ({ page, requ
 
 // The save guard for the chip widgets: free text typed into a chip field but not
 // turned into a chip blocks the save (and explains why) until it is committed.
-test('save is blocked while a chip field holds unconfirmed free text', async ({ page, request }) => {
+test('save is blocked while a chip field holds unconfirmed free text', async ({
+	page,
+	request,
+}) => {
 	const id = await createBlankBook(request);
 	await page.goto(`/books/${id}/edit`);
 
@@ -187,8 +192,10 @@ test('save is blocked while a chip field holds unconfirmed free text', async ({ 
 	await nameInput.fill('Unconfirmed Person');
 
 	// Loose text -> save disabled, with an explanation of how to resolve it.
+	// (String matcher, not regex: it normalizes whitespace so the assertion
+	// survives the message wrapping across lines.)
 	await expect(saveButton).toBeDisabled();
-	await expect(page.getByText(/press enter to turn it into a chip/i)).toBeVisible();
+	await expect(page.getByText('Press Enter to turn it into a chip')).toBeVisible();
 
 	// Committing the chip clears the loose text and re-enables save.
 	await nameInput.press('Enter');

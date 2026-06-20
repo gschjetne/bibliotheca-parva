@@ -17,18 +17,18 @@ running container is wasteful for this usage. Goals:
 
 ## Decisions
 
-| Concern | Decision |
-|---|---|
-| Compute | Cloudflare **Workers** (functions), free plan |
-| Web framework | **SvelteKit** (Svelte 5) via `@sveltejs/adapter-cloudflare` |
-| UI | Client-rendered Svelte; JSON endpoints (`+server.ts`) for data |
-| Styling | **Tailwind CSS v4** (`@tailwindcss/vite`) |
-| Persistence | **D1** (SQLite) |
-| Search | **FTS5** full-text index, accent-folded |
-| Auth | **Cloudflare Access** (Zero Trust) in front of the Worker |
-| Static assets | **adapter-cloudflare** output served as Workers assets |
-| ISBN metadata | **Client-side `fetch()` fan-out** → review screen → save |
-| Infra / IaC | **Wrangler config + migrations in git**; one-time Access/DNS in a runbook (no Terraform) |
+| Concern       | Decision                                                                                 |
+| ------------- | ---------------------------------------------------------------------------------------- |
+| Compute       | Cloudflare **Workers** (functions), free plan                                            |
+| Web framework | **SvelteKit** (Svelte 5) via `@sveltejs/adapter-cloudflare`                              |
+| UI            | Client-rendered Svelte; JSON endpoints (`+server.ts`) for data                           |
+| Styling       | **Tailwind CSS v4** (`@tailwindcss/vite`)                                                |
+| Persistence   | **D1** (SQLite)                                                                          |
+| Search        | **FTS5** full-text index, accent-folded                                                  |
+| Auth          | **Cloudflare Access** (Zero Trust) in front of the Worker                                |
+| Static assets | **adapter-cloudflare** output served as Workers assets                                   |
+| ISBN metadata | **Client-side `fetch()` fan-out** → review screen → save                                 |
+| Infra / IaC   | **Wrangler config + migrations in git**; one-time Access/DNS in a runbook (no Terraform) |
 
 ### Compute: Workers (free plan)
 

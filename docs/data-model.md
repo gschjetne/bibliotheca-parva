@@ -10,15 +10,15 @@ See `docs/architecture.md` for the platform decisions and
 
 ## What changed and why
 
-| Old | New | Why |
-|---|---|---|
-| `Location` table + FK | `book.shelf_location` text | 0 rows in production; never used |
-| 5 role M2M tables (authors, editors, …) | one `contribution` table + `role` | same shape, one table; preserves ordering |
-| `Person.name` (single string) | `person` + `name_form` (+ `contribution.name_as_printed`) | separates identity / spelling / as-printed (authority control) |
-| `Person.ol_id` | typed authority cols (`ol_key`, `viaf_id`, `isni`, `wikidata_id`) | auto-clustering hook; captured now, enriched later |
-| `languages[]` (Postgres array) | `book.languages` JSON array of codes | SQLite has no array type; display-mostly |
-| `created_at`/`updated_at` everywhere | dropped | nothing reads them |
-| `Subject` + `book_subjects` | `subject` + `book_subject` (unchanged shape) | kept as a tag; ready for browse-by-subject later |
+| Old                                     | New                                                               | Why                                                            |
+| --------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------- |
+| `Location` table + FK                   | `book.shelf_location` text                                        | 0 rows in production; never used                               |
+| 5 role M2M tables (authors, editors, …) | one `contribution` table + `role`                                 | same shape, one table; preserves ordering                      |
+| `Person.name` (single string)           | `person` + `name_form` (+ `contribution.name_as_printed`)         | separates identity / spelling / as-printed (authority control) |
+| `Person.ol_id`                          | typed authority cols (`ol_key`, `viaf_id`, `isni`, `wikidata_id`) | auto-clustering hook; captured now, enriched later             |
+| `languages[]` (Postgres array)          | `book.languages` JSON array of codes                              | SQLite has no array type; display-mostly                       |
+| `created_at`/`updated_at` everywhere    | dropped                                                           | nothing reads them                                             |
+| `Subject` + `book_subjects`             | `subject` + `book_subject` (unchanged shape)                      | kept as a tag; ready for browse-by-subject later               |
 
 ## Shelving (future — not fully thought out)
 
@@ -48,7 +48,7 @@ Three concepts the old model conflated into `Person.name`:
 2. **Name form** — a spelling/transliteration (`name_form`): "Dostoevsky",
    "Достоевский", "Dostoyevsky". Many per person. `text_folded` (accent/ASCII
    folded, lowercased) feeds search.
-3. **Name as printed** — exactly what is on *this* book
+3. **Name as printed** — exactly what is on _this_ book
    (`contribution.name_as_printed`). Bibliographic fidelity; stored always, with
    zero clustering effort required.
 
@@ -158,4 +158,7 @@ CREATE VIRTUAL TABLE book_fts USING fts5(
 - `auth_user` → discarded (identity is Cloudflare Access).
 - Post-import: rebuild `book_fts`; optionally auto-merge persons sharing an
   `ol_key` (carries forward the intent of `deduplicate_persons.sql`).
+
+```
+
 ```

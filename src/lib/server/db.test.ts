@@ -12,18 +12,34 @@ let proxy: Awaited<ReturnType<typeof getPlatformProxy>>;
 let db: D1Database;
 
 const blank = (over: Partial<BookInput>): BookInput => ({
-	title: null, subtitle: null, original_title: null, edition_name: null,
-	description: null, isbn: null, published_by: null, published_place: null,
-	published_year: null, languages: [], shelf_location: null,
-	contributors: [], subjects: [], ...over
+	title: null,
+	subtitle: null,
+	original_title: null,
+	edition_name: null,
+	description: null,
+	isbn: null,
+	published_by: null,
+	published_place: null,
+	published_year: null,
+	languages: [],
+	shelf_location: null,
+	contributors: [],
+	subjects: [],
+	...over,
 });
 
 beforeAll(async () => {
 	rmSync('.wrangler/test-db', { recursive: true, force: true });
-	proxy = await getPlatformProxy<Env>({ configPath: 'wrangler.jsonc', persist: { path: '.wrangler/test-db' } });
+	proxy = await getPlatformProxy<Env>({
+		configPath: 'wrangler.jsonc',
+		persist: { path: '.wrangler/test-db' },
+	});
 	db = (proxy.env as Env).DB;
 	const sql = readFileSync('migrations/0001_init.sql', 'utf8').replace(/--[^\n]*/g, '');
-	for (const stmt of sql.split(';').map((s) => s.trim()).filter(Boolean)) {
+	for (const stmt of sql
+		.split(';')
+		.map((s) => s.trim())
+		.filter(Boolean)) {
 		await db.prepare(stmt).run();
 	}
 });
@@ -34,10 +50,13 @@ afterAll(async () => {
 
 describe('searchBooks over D1', () => {
 	it('finds a book by a title word and by a contributor name', async () => {
-		await createBook(db, blank({
-			title: 'The Two Towers',
-			contributors: [{ name: 'J. R. R. Tolkien', role: 'author' }]
-		}));
+		await createBook(
+			db,
+			blank({
+				title: 'The Two Towers',
+				contributors: [{ name: 'J. R. R. Tolkien', role: 'author' }],
+			}),
+		);
 
 		const byTitle = await searchBooks(db, 'towers');
 		expect(byTitle.map((b) => b.title)).toContain('The Two Towers');
@@ -67,7 +86,10 @@ describe('contributor identity', () => {
 
 	it('links an existing person instead of creating a duplicate', async () => {
 		const NAME = 'Italo Calvino';
-		await createBook(db, blank({ title: 'Invisible Cities', contributors: [{ name: NAME, role: 'author' }] }));
+		await createBook(
+			db,
+			blank({ title: 'Invisible Cities', contributors: [{ name: NAME, role: 'author' }] }),
+		);
 		const [personId] = await personIdsNamed(NAME);
 		expect(personId).toBeGreaterThan(0);
 
@@ -76,10 +98,13 @@ describe('contributor identity', () => {
 		expect(suggestions).toContainEqual({ id: personId, name: NAME });
 
 		// …and adding it to another book links the same identity, no duplicate.
-		await createBook(db, blank({
-			title: 'If on a winter’s night a traveler',
-			contributors: [{ name: NAME, role: 'author', personId }]
-		}));
+		await createBook(
+			db,
+			blank({
+				title: 'If on a winter’s night a traveler',
+				contributors: [{ name: NAME, role: 'author', personId }],
+			}),
+		);
 		expect(await personIdsNamed(NAME)).toEqual([personId]); // still exactly one person
 
 		const both = await db
@@ -90,7 +115,10 @@ describe('contributor identity', () => {
 	});
 
 	it('creates a new person for an unmatched name', async () => {
-		await createBook(db, blank({ title: 'X', contributors: [{ name: 'A Brand New Author', role: 'author' }] }));
+		await createBook(
+			db,
+			blank({ title: 'X', contributors: [{ name: 'A Brand New Author', role: 'author' }] }),
+		);
 		expect((await personIdsNamed('A Brand New Author')).length).toBe(1);
 	});
 });

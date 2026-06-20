@@ -24,7 +24,7 @@ real, agreed-upon behaviour rather than against the current Django code.
 ## Behaviour we deliberately did NOT codify
 
 The current metadata fetchers contain bugs. We are reimplementing to feature
-parity of the *intended* behaviour, so these are specified as they *should*
+parity of the _intended_ behaviour, so these are specified as they _should_
 work, not as they currently misbehave:
 
 - Open Library publication year is never stored (`if find_year in ol:` is a
@@ -42,7 +42,7 @@ work, not as they currently misbehave:
    picker: choose from human-readable language names, store a stable code under
    the hood, and offer only recognised languages. (`edit_book.feature`)
 3. **Metadata sources — no longer "first wins".** The add-by-ISBN flow queries
-   *all* configured sources (Libris, Open Library, Bibbi, and any future
+   _all_ configured sources (Libris, Open Library, Bibbi, and any future
    modules), then shows the librarian what each source returned for each field
    and lets them pick the best value per field, or type their own. The book is
    created from the chosen values when they save. Data quality varies wildly

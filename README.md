@@ -2,7 +2,7 @@
 
 ## Introduction
 
-*Bibliotheca Parva* is a library management system designed for small private home libraries only.
+_Bibliotheca Parva_ is a library management system designed for small private home libraries only.
 
 Institutional users should probably consider one of the established systems instead.
 

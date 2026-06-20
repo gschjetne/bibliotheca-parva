@@ -13,8 +13,8 @@ test.describe('home-page add-by-ISBN', () => {
 		await page.route('**/libris.kb.se/**', (r) =>
 			r.fulfill({
 				contentType: 'text/plain',
-				body: ['T1 The Fellowship of the Ring', `SN ${ISBN}`].join('\r\n')
-			})
+				body: ['T1 The Fellowship of the Ring', `SN ${ISBN}`].join('\r\n'),
+			}),
 		);
 		await page.route('**/bibliografisk.bs.no/**', (r) => r.fulfill({ status: 404, body: '' }));
 	});
@@ -28,7 +28,7 @@ test.describe('home-page add-by-ISBN', () => {
 		// The review screen appears with the looked-up candidate.
 		await expect(page.getByRole('columnheader', { name: 'Your record' })).toBeVisible();
 		await expect(
-			page.getByRole('button', { name: 'The Fellowship of the Ring' }).first()
+			page.getByRole('button', { name: 'The Fellowship of the Ring' }).first(),
 		).toBeVisible();
 	});
 

@@ -6,10 +6,10 @@
 // multiple name_forms per person, not by folding. D1's COLLATE NOCASE is
 // ASCII-only, which is why we fold ourselves and index the folded text.
 export function fold(text: string): string {
-  return text
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
+	return text
+		.normalize('NFD')
+		.replace(/\p{Diacritic}/gu, '')
+		.toLowerCase()
+		.replace(/\s+/g, ' ')
+		.trim();
 }

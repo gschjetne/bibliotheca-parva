@@ -9,6 +9,6 @@ export default defineConfig({
 	test: {
 		environment: 'node',
 		include: ['src/lib/**/*.test.ts'],
-		exclude: ['src/lib/server/db.test.ts']
-	}
+		exclude: ['src/lib/server/db.test.ts'],
+	},
 });

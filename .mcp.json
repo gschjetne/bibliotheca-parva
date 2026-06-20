@@ -1,8 +1,8 @@
 {
-  "mcpServers": {
-    "cloudflare-docs": {
-      "type": "http",
-      "url": "https://docs.mcp.cloudflare.com/mcp"
-    }
-  }
+	"mcpServers": {
+		"cloudflare-docs": {
+			"type": "http",
+			"url": "https://docs.mcp.cloudflare.com/mcp"
+		}
+	}
 }

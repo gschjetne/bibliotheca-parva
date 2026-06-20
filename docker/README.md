@@ -18,8 +18,8 @@ claude --dangerously-skip-permissions
 
 ## What's in the box
 
-| Service | Purpose |
-|---------|---------|
+| Service | Purpose                                                                                                                        |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `agent` | Node 22 + Python 3.11 + Claude Code, running as non-root user `dev` (uid 1000) so `--dangerously-skip-permissions` is allowed. |
 
 - **Run the app**: inside the agent, `npm run dev -- --host 0.0.0.0 --port 8000` →

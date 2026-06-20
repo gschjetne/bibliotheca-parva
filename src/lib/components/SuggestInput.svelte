@@ -4,7 +4,7 @@
 	let {
 		value = $bindable(''),
 		endpoint,
-		placeholder = ''
+		placeholder = '',
 	}: { value: string; endpoint: string; placeholder?: string } = $props();
 
 	let suggestions = $state<string[]>([]);
@@ -42,10 +42,16 @@
 		onblur={() => setTimeout(() => (open = false), 150)}
 	/>
 	{#if open && suggestions.length}
-		<ul class="absolute z-10 bg-white border border-slate-300 rounded shadow w-full mt-1 max-h-48 overflow-auto">
+		<ul
+			class="absolute z-10 bg-white border border-slate-300 rounded shadow w-full mt-1 max-h-48 overflow-auto"
+		>
 			{#each suggestions as s (s)}
 				<li>
-					<button type="button" class="block w-full text-left px-2 py-1 text-xs hover:bg-sky-100 cursor-pointer" onclick={() => pick(s)}>{s}</button>
+					<button
+						type="button"
+						class="block w-full text-left px-2 py-1 text-xs hover:bg-sky-100 cursor-pointer"
+						onclick={() => pick(s)}>{s}</button
+					>
 				</li>
 			{/each}
 		</ul>

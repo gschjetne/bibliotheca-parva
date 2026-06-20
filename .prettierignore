@@ -1,0 +1,17 @@
+# Build output & generated files
+.svelte-kit
+.wrangler
+.stryker-tmp
+build
+reports
+test-results
+worker-configuration.d.ts
+
+# Lockfiles & data dumps
+package-lock.json
+*.sql
+seed.sql
+*.sql.bz2
+
+# Vendored / non-source
+COPYING

@@ -1,29 +1,27 @@
 {
-    "$schema": "./node_modules/wrangler/config-schema.json",
-    "name": "bibliotheca-parva",
-    "compatibility_date": "2026-06-19",
-    "compatibility_flags": [
-        "nodejs_als"
-    ],
-    "main": ".svelte-kit/cloudflare/_worker.js",
-    "assets": {
-        "binding": "ASSETS",
-        "directory": ".svelte-kit/cloudflare"
-    },
-    "workers_dev": true,
-    "preview_urls": true,
-    "d1_databases": [
-        {
-            "binding": "DB",
-            "database_name": "bibliotheca-parva",
-            "database_id": "cf9dfa0d-44f7-41c5-b7fe-a3d79d6a1efe",
-            "migrations_dir": "migrations"
-        }
-    ],
-    "vars": {
-        // Local dev bypasses the Access gate via .dev.vars (ACCESS_BYPASS=true).
-        "ACCESS_BYPASS": "false",
-        "ACCESS_TEAM_DOMAIN": "floral-frost-2c45.cloudflareaccess.com",
-        "ACCESS_AUD": "7c102bc5761e80e09113b1d318d56382aef30e208f3082b3f721edc180127896"
-    }
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "bibliotheca-parva",
+	"compatibility_date": "2026-06-19",
+	"compatibility_flags": ["nodejs_als"],
+	"main": ".svelte-kit/cloudflare/_worker.js",
+	"assets": {
+		"binding": "ASSETS",
+		"directory": ".svelte-kit/cloudflare",
+	},
+	"workers_dev": true,
+	"preview_urls": true,
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "bibliotheca-parva",
+			"database_id": "cf9dfa0d-44f7-41c5-b7fe-a3d79d6a1efe",
+			"migrations_dir": "migrations",
+		},
+	],
+	"vars": {
+		// Local dev bypasses the Access gate via .dev.vars (ACCESS_BYPASS=true).
+		"ACCESS_BYPASS": "false",
+		"ACCESS_TEAM_DOMAIN": "floral-frost-2c45.cloudflareaccess.com",
+		"ACCESS_AUD": "7c102bc5761e80e09113b1d318d56382aef30e208f3082b3f721edc180127896",
+	},
 }

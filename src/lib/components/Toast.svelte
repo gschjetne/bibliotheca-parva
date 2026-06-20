@@ -13,7 +13,11 @@
 			>
 				<span>{t.message}</span>
 				{#if t.href}
-					<a href={t.href} class="font-bold text-sky-700 underline" onclick={() => dismissToast(t.id)}>
+					<a
+						href={t.href}
+						class="font-bold text-sky-700 underline"
+						onclick={() => dismissToast(t.id)}
+					>
 						{t.linkText ?? 'Open'}
 					</a>
 				{/if}

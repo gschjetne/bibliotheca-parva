@@ -21,14 +21,14 @@
 		e.preventDefault();
 		const raw = isbn.trim();
 		if (!raw) {
-			goto('/add');
+			void goto('/add');
 			return;
 		}
 		if (!isValidIsbn(raw)) {
 			isbnError = `"${raw}" is not a valid ISBN.`;
 			return;
 		}
-		goto(`/add?isbn=${encodeURIComponent(raw)}`);
+		void goto(`/add?isbn=${encodeURIComponent(raw)}`);
 	}
 	let results = $state<ResultBook[]>([]);
 	let timer: ReturnType<typeof setTimeout> | undefined;

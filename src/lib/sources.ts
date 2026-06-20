@@ -20,7 +20,7 @@ export const SOURCES: Provider[] = [libris, openLibrary, bibbi];
 export function fetchSources(
 	isbn13: string,
 	onUpdate: (name: string, state: SourceState) => void,
-	f: typeof fetch = fetch
+	f: typeof fetch = fetch,
 ): Promise<void>[] {
 	return SOURCES.map((p) => {
 		onUpdate(p.name, { status: 'loading', candidate: null });
@@ -38,7 +38,7 @@ export function fetchSources(
  */
 export function candidateField(
 	c: Candidate,
-	key: string
+	key: string,
 ): { display: string; copy: string } | null {
 	const v = (c as Record<string, unknown>)[key];
 	if (v == null) return null;

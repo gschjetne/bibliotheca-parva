@@ -6,16 +6,16 @@ const ISBN = '9780261103573';
 // the editor's source columns are deterministic.
 test.beforeEach(async ({ page }) => {
 	await page.route('**/openlibrary.org/isbn/**', (r) =>
-		r.fulfill({ json: { title: 'Fellowship of the Ring', authors: [{ key: '/authors/OL1A' }] } })
+		r.fulfill({ json: { title: 'Fellowship of the Ring', authors: [{ key: '/authors/OL1A' }] } }),
 	);
 	await page.route('**/openlibrary.org/authors/**', (r) =>
-		r.fulfill({ json: { name: 'J. R. R. Tolkien' } })
+		r.fulfill({ json: { name: 'J. R. R. Tolkien' } }),
 	);
 	await page.route('**/libris.kb.se/**', (r) =>
 		r.fulfill({
 			contentType: 'text/plain',
-			body: ['T1 The Fellowship of the Ring', 'PB Allen & Unwin', `SN ${ISBN}`].join('\r\n')
-		})
+			body: ['T1 The Fellowship of the Ring', 'PB Allen & Unwin', `SN ${ISBN}`].join('\r\n'),
+		}),
 	);
 	await page.route('**/bibliografisk.bs.no/**', (r) => r.fulfill({ status: 404, body: '' }));
 });

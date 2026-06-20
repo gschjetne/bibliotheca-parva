@@ -23,6 +23,6 @@ export default defineConfig({
 		command: 'npm run build && npm run preview',
 		port: 4173,
 		reuseExistingServer: true,
-		timeout: 180_000
-	}
+		timeout: 180_000,
+	},
 });

@@ -6,7 +6,7 @@
 	// until it's turned into a chip (Enter) or cleared.
 	let {
 		contributors = $bindable([]),
-		pending = $bindable('')
+		pending = $bindable(''),
 	}: { contributors: Contributor[]; pending?: string } = $props();
 	let q = $state('');
 	let suggestions = $state<Suggestion[]>([]);
@@ -47,7 +47,8 @@
 	function onkeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter') {
 			e.preventDefault();
-			suggestions[0] ? addExisting(suggestions[0]) : addNew();
+			if (suggestions[0]) addExisting(suggestions[0]);
+			else addNew();
 		}
 	}
 </script>
@@ -62,7 +63,12 @@
 				title={c.personId ? 'Linked to an existing person' : 'New person'}
 			>
 				{c.name}
-				<button type="button" class="text-slate-400 hover:text-red-600 cursor-pointer" onclick={() => remove(i)} aria-label="remove">×</button>
+				<button
+					type="button"
+					class="text-slate-400 hover:text-red-600 cursor-pointer"
+					onclick={() => remove(i)}
+					aria-label="remove">×</button
+				>
 			</span>
 		{/each}
 	</div>
@@ -74,10 +80,16 @@
 		{onkeydown}
 	/>
 	{#if suggestions.length}
-		<ul class="absolute z-10 bg-white border border-slate-300 rounded shadow w-full mt-1 max-h-48 overflow-auto">
+		<ul
+			class="absolute z-10 bg-white border border-slate-300 rounded shadow w-full mt-1 max-h-48 overflow-auto"
+		>
 			{#each suggestions as p (p.id)}
 				<li>
-					<button type="button" class="block w-full text-left px-2 py-1 text-xs hover:bg-sky-100 cursor-pointer" onclick={() => addExisting(p)}>
+					<button
+						type="button"
+						class="block w-full text-left px-2 py-1 text-xs hover:bg-sky-100 cursor-pointer"
+						onclick={() => addExisting(p)}
+					>
 						{p.name} <span class="text-slate-400">· existing</span>
 					</button>
 				</li>

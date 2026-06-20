@@ -6,7 +6,7 @@
 	// until it's turned into a chip (Enter) or cleared.
 	let {
 		subjects = $bindable([]),
-		pending = $bindable('')
+		pending = $bindable(''),
 	}: { subjects: string[]; pending?: string } = $props();
 	let q = $state('');
 	let suggestions = $state<string[]>([]);
@@ -54,9 +54,16 @@
 <div class="relative">
 	<div class="flex flex-wrap gap-1 mb-1">
 		{#each subjects as s, i (i)}
-			<span class="inline-flex items-center gap-1 border border-amber-400 bg-amber-50 rounded-full px-2 py-0.5 text-xs">
+			<span
+				class="inline-flex items-center gap-1 border border-amber-400 bg-amber-50 rounded-full px-2 py-0.5 text-xs"
+			>
 				{s}
-				<button type="button" class="text-slate-400 hover:text-red-600 cursor-pointer" onclick={() => remove(i)} aria-label="remove">×</button>
+				<button
+					type="button"
+					class="text-slate-400 hover:text-red-600 cursor-pointer"
+					onclick={() => remove(i)}
+					aria-label="remove">×</button
+				>
 			</span>
 		{/each}
 	</div>
@@ -68,10 +75,16 @@
 		{onkeydown}
 	/>
 	{#if suggestions.length}
-		<ul class="absolute z-10 bg-white border border-slate-300 rounded shadow w-full mt-1 max-h-48 overflow-auto">
+		<ul
+			class="absolute z-10 bg-white border border-slate-300 rounded shadow w-full mt-1 max-h-48 overflow-auto"
+		>
 			{#each suggestions as s (s)}
 				<li>
-					<button type="button" class="block w-full text-left px-2 py-1 text-xs hover:bg-amber-100 cursor-pointer" onclick={() => add(s)}>
+					<button
+						type="button"
+						class="block w-full text-left px-2 py-1 text-xs hover:bg-amber-100 cursor-pointer"
+						onclick={() => add(s)}
+					>
 						{s} <span class="text-slate-400">· existing</span>
 					</button>
 				</li>
