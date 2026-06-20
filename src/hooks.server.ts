@@ -8,7 +8,11 @@ import { verifyAccessJwt } from '$lib/server/access';
 export const handle: Handle = async ({ event, resolve }) => {
 	const env = event.platform?.env;
 
-	if (env?.ACCESS_BYPASS === 'true') {
+	// `wrangler types` infers ACCESS_BYPASS as the literal "false" from
+	// wrangler.jsonc when .dev.vars is absent (as in CI), but .dev.vars (local)
+	// and the deployment can set it to "true". Coerce to a plain string so the
+	// check is valid regardless of the literal type that gets generated.
+	if (String(env?.ACCESS_BYPASS) === 'true') {
 		event.locals.identity = { email: 'dev@localhost', sub: 'dev' };
 		return resolve(event);
 	}
