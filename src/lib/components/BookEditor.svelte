@@ -264,76 +264,90 @@
 </form>
 
 {#if looked || book || blank}
-	<table class="table-fixed text-xs border border-slate-500 w-full shadow-md">
-		<thead class="font-sans">
-			<tr class="bg-sky-600 text-white">
-				<th class="w-2/12 p-2 border border-slate-300 text-left">Field</th>
-				<th class="w-4/12 p-2 border border-slate-300 text-left">Your record</th>
-				{#each SOURCES as s, i (s.name)}
-					<th class="p-2 border border-slate-300 text-left">
-						<span class="inline-flex items-center gap-1.5">
-							{s.name}
-							{#if states[s.name]?.status === 'loading'}
-								<Throbber
-									variant={THROBBERS[i % THROBBERS.length]}
-									label={`Fetching from ${s.name}…`}
+	<!-- The source-comparison columns only appear once a lookup has run, so the
+	common hand-entry / edit case is a compact two-column table. When the source
+	columns are present the table can outgrow a phone, so it scrolls horizontally
+	(with a min-width) instead of squeezing the cells until they overlap. -->
+	<div class="overflow-x-auto">
+		<table
+			class="table-fixed border border-slate-500 text-xs shadow-md {looked
+				? 'w-full min-w-[44rem]'
+				: 'w-full'}"
+		>
+			<thead class="font-sans">
+				<tr class="bg-sky-600 text-white">
+					<th class="w-2/12 border border-slate-300 p-2 text-left">Field</th>
+					<th class="w-4/12 border border-slate-300 p-2 text-left">Your record</th>
+					{#if looked}
+						{#each SOURCES as s, i (s.name)}
+							<th class="border border-slate-300 p-2 text-left">
+								<span class="inline-flex items-center gap-1.5">
+									{s.name}
+									{#if states[s.name]?.status === 'loading'}
+										<Throbber
+											variant={THROBBERS[i % THROBBERS.length]}
+											label={`Fetching from ${s.name}…`}
+										/>
+									{/if}
+								</span>
+							</th>
+						{/each}
+					{/if}
+				</tr>
+			</thead>
+			<tbody>
+				{#each ROWS as row (row.label)}
+					<tr class="odd:bg-slate-200 align-top">
+						<th class="p-2 border border-slate-300 text-left font-sans">{row.label}</th>
+						<td class="p-2 border border-slate-300">
+							{#if row.widget === 'role' && row.role}
+								<ContributorPicker
+									bind:contributors={roles[row.role]}
+									bind:pending={rolePending[row.role]}
+								/>
+							{:else if row.widget === 'languages'}
+								<LanguagePicker bind:codes={languages} bind:pending={languagesPending} />
+							{:else if row.widget === 'subjects'}
+								<SubjectPicker bind:subjects bind:pending={subjectsPending} />
+							{:else if row.widget === 'suggest' && row.key && row.endpoint}
+								<SuggestInput bind:value={rec[row.key]} endpoint={row.endpoint} />
+							{:else if row.widget === 'textarea' && row.key}
+								<textarea
+									name={row.key}
+									class="border border-slate-400 rounded text-xs p-1 w-full"
+									rows="3"
+									bind:value={rec[row.key]}></textarea>
+							{:else if row.key}
+								<input
+									name={row.key}
+									class="border border-slate-400 rounded-full text-xs p-1 w-full"
+									type={row.widget === 'number' ? 'number' : 'text'}
+									bind:value={rec[row.key]}
 								/>
 							{/if}
-						</span>
-					</th>
-				{/each}
-			</tr>
-		</thead>
-		<tbody>
-			{#each ROWS as row (row.label)}
-				<tr class="odd:bg-slate-200 align-top">
-					<th class="p-2 border border-slate-300 text-left font-sans">{row.label}</th>
-					<td class="p-2 border border-slate-300">
-						{#if row.widget === 'role' && row.role}
-							<ContributorPicker
-								bind:contributors={roles[row.role]}
-								bind:pending={rolePending[row.role]}
-							/>
-						{:else if row.widget === 'languages'}
-							<LanguagePicker bind:codes={languages} bind:pending={languagesPending} />
-						{:else if row.widget === 'subjects'}
-							<SubjectPicker bind:subjects bind:pending={subjectsPending} />
-						{:else if row.widget === 'suggest' && row.key && row.endpoint}
-							<SuggestInput bind:value={rec[row.key]} endpoint={row.endpoint} />
-						{:else if row.widget === 'textarea' && row.key}
-							<textarea
-								name={row.key}
-								class="border border-slate-400 rounded text-xs p-1 w-full"
-								rows="3"
-								bind:value={rec[row.key]}></textarea>
-						{:else if row.key}
-							<input
-								name={row.key}
-								class="border border-slate-400 rounded-full text-xs p-1 w-full"
-								type={row.widget === 'number' ? 'number' : 'text'}
-								bind:value={rec[row.key]}
-							/>
-						{/if}
-					</td>
-					{#each SOURCES as s (s.name)}
-						{@const c = cell(states[s.name], row.cand)}
-						<td class="p-2 border border-slate-300">
-							{#if c.copy !== undefined}
-								<button
-									type="button"
-									class="text-left hover:bg-sky-100 rounded px-1 cursor-pointer w-full"
-									title="Click to copy into your record"
-									onclick={() => copyInto(row, c.copy!)}>{c.text}</button
-								>
-							{:else}
-								<span class="text-slate-400">{c.text}</span>
-							{/if}
 						</td>
-					{/each}
-				</tr>
-			{/each}
-		</tbody>
-	</table>
+						{#if looked}
+							{#each SOURCES as s (s.name)}
+								{@const c = cell(states[s.name], row.cand)}
+								<td class="p-2 border border-slate-300">
+									{#if c.copy !== undefined}
+										<button
+											type="button"
+											class="text-left hover:bg-sky-100 rounded px-1 cursor-pointer w-full"
+											title="Click to copy into your record"
+											onclick={() => copyInto(row, c.copy!)}>{c.text}</button
+										>
+									{:else}
+										<span class="text-slate-400">{c.text}</span>
+									{/if}
+								</td>
+							{/each}
+						{/if}
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
 
 	<div class="mt-4">
 		<button

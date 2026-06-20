@@ -8,7 +8,7 @@
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
-<div class="container mx-auto p-5">
+<div class="container mx-auto p-3 sm:p-5">
 	{@render children()}
 </div>
 
