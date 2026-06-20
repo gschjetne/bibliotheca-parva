@@ -49,6 +49,12 @@ Feature: Editing a book's details
     When I set the book's location to "Living room, top shelf"
     Then the saved book's location is "Living room, top shelf"
 
+  Scenario: Saving returns the librarian to the page they came from
+    Given I opened the book's edit page from the search results
+    When I edit the book and save it
+    Then the edit is saved
+    And I am taken back to the search results I came from
+
   Scenario: Recording subjects and keywords
     When I add the subjects "Fantasy" and "Middle-earth" to the book
     Then the book is filed under "Fantasy"

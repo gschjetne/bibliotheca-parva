@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { goto, afterNavigate } from '$app/navigation';
 	import { fetchSources, SOURCES, candidateField, type SourceState } from '$lib/sources';
 	import type { Candidate } from '$lib/providers';
 	import { toIsbn13 } from '$lib/isbn';
@@ -100,6 +100,16 @@
 		(roles[c.role] ??= []).push({ name: c.name_as_printed, personId: c.person_id ?? undefined });
 	}
 
+	// Remember the page the librarian arrived from (e.g. the search results) so
+	// saving an edit can hand them back there instead of stranding them on the
+	// form. Null after a fresh page load — there is no in-app page to return to.
+	let cameFrom: string | null = null;
+	afterNavigate(({ from, to }) => {
+		if (from && from.url.pathname !== to?.url.pathname) {
+			cameFrom = from.url.pathname + from.url.search;
+		}
+	});
+
 	onMount(() => {
 		if (isbn) lookup();
 	});
@@ -161,12 +171,21 @@
 			body: JSON.stringify(buildInput())
 		});
 		saving = false;
-		if (res.ok) {
-			const { id } = (await res.json()) as { id?: number };
-			goto(`/books/${id ?? book?.id}/edit`);
-		} else {
+		if (!res.ok) {
 			error = 'Save failed.';
+			return;
 		}
+		if (book) {
+			// Editing an existing record: return to wherever the librarian came
+			// from (usually the search results), falling back to the home page
+			// when the edit page was opened directly with no in-app history.
+			if (cameFrom !== null) history.back();
+			else goto('/');
+			return;
+		}
+		// A brand-new book: land on its own edit page so it can be fleshed out.
+		const { id } = (await res.json()) as { id?: number };
+		goto(`/books/${id}/edit`);
 	}
 
 	async function remove() {

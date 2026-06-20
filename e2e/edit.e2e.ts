@@ -49,10 +49,13 @@ test('edit a book: record shelf location and a contributor, then delete it', asy
 	await expect(subjectsRow.getByText(SUBJECT)).toBeVisible();
 
 	await page.getByRole('button', { name: 'Save book' }).click();
-	await expect(page).toHaveURL(new RegExp(`/books/${id}/edit$`));
+	// Saving an existing book leaves the form; this page was opened directly, so
+	// it falls back to the home page (the "returns to where you came from" path
+	// is exercised in its own test below).
+	await expect(page).toHaveURL(/\/$/);
 
-	// Reload to prove the edits were persisted, not just held in the form.
-	await page.reload();
+	// Re-open the edit page to prove the edits were persisted, not just held.
+	await page.goto(`/books/${id}/edit`);
 	await expect(page.locator('input[name="shelf_location"]')).toHaveValue('Living room, top shelf');
 	await expect(page.getByText(AUTHOR)).toBeVisible();
 	await expect(page.getByText(SUBJECT)).toBeVisible();
@@ -71,6 +74,37 @@ test('edit a book: record shelf location and a contributor, then delete it', asy
 	await page.getByPlaceholder('Search').fill(SEARCH_TOKEN);
 	await page.waitForResponse((r) => r.url().includes('/api/search') && r.url().includes(SEARCH_TOKEN));
 	await expect(page.getByText(TITLE)).toHaveCount(0);
+});
+
+// Acceptance: features/edit_book.feature — "Saving returns the librarian to the
+// page they came from". Arriving at the edit page via the search results' edit
+// link, saving hands the librarian back to those results, not the form.
+test('saving an edited book returns to the page the librarian came from', async ({
+	page,
+	request
+}) => {
+	const id = await createBlankBook(request);
+
+	// Reach the edit page the way a librarian does: from the search results.
+	await page.goto('/');
+	await page.getByPlaceholder('Search').fill(SEARCH_TOKEN);
+	const resultRow = page.getByRole('row', { name: new RegExp(TITLE) });
+	await resultRow.getByRole('link', { name: 'edit' }).click();
+	await expect(page).toHaveURL(new RegExp(`/books/${id}/edit$`));
+
+	// Make an edit and save it.
+	await page.locator('input[name="shelf_location"]').fill('Hallway');
+	await page.getByRole('button', { name: 'Save book' }).click();
+
+	// Back on the search page we came from — not stranded on the edit form.
+	await expect(page).toHaveURL(/\/$/);
+	await expect(page).not.toHaveURL(new RegExp(`/books/${id}/edit$`));
+
+	// The edit really was saved.
+	await page.goto(`/books/${id}/edit`);
+	await expect(page.locator('input[name="shelf_location"]')).toHaveValue('Hallway');
+
+	await request.delete(`/api/books/${id}`);
 });
 
 // Acceptance: features/edit_book.feature — "Recording the languages of a book
