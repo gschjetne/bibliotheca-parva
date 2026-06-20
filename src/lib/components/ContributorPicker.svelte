@@ -2,10 +2,18 @@
 	export type Contributor = { name: string; personId?: number };
 	type Suggestion = { id: number; name: string };
 
-	let { contributors = $bindable([]) }: { contributors: Contributor[] } = $props();
+	// `pending` mirrors the uncommitted free text so the parent can block saving
+	// until it's turned into a chip (Enter) or cleared.
+	let {
+		contributors = $bindable([]),
+		pending = $bindable('')
+	}: { contributors: Contributor[]; pending?: string } = $props();
 	let q = $state('');
 	let suggestions = $state<Suggestion[]>([]);
 	let timer: ReturnType<typeof setTimeout> | undefined;
+	$effect(() => {
+		pending = q.trim();
+	});
 
 	// Debounced lookup of existing people. oninput (not $effect) so programmatic
 	// resets of `q` don't trigger a refetch.

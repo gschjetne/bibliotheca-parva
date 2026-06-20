@@ -12,6 +12,12 @@ test.beforeEach(async ({ page }) => {
 const reviewTable = (page: import('@playwright/test').Page) =>
 	page.getByRole('columnheader', { name: 'Your record' });
 
+// `/add` always shows the (blank) editor table now, so the table being present
+// no longer tells us whether a lookup ran. The sources are stubbed to fail, so a
+// lookup that *did* fire would paint "unavailable" into the source columns; its
+// absence is how we assert the lookup was never triggered.
+const lookupRan = (page: import('@playwright/test').Page) => page.getByText('unavailable');
+
 // add_book_by_isbn.feature: "Rejecting an invalid ISBN before any lookup".
 test('a malformed ISBN is rejected before any lookup runs', async ({ page }) => {
 	await page.goto('/add');
@@ -19,8 +25,8 @@ test('a malformed ISBN is rejected before any lookup runs', async ({ page }) => 
 	await page.getByRole('button', { name: 'Look up' }).click();
 
 	await expect(page.getByText('Not a valid ISBN.')).toBeVisible();
-	// No review screen — the lookup never happened.
-	await expect(reviewTable(page)).toHaveCount(0);
+	// The lookup never happened — no source column was queried.
+	await expect(lookupRan(page)).toHaveCount(0);
 });
 
 // isbn_handling.feature: a wrong check digit is not a valid ISBN.
@@ -30,7 +36,7 @@ test('an ISBN with a bad check digit is rejected', async ({ page }) => {
 	await page.getByRole('button', { name: 'Look up' }).click();
 
 	await expect(page.getByText('Not a valid ISBN.')).toBeVisible();
-	await expect(reviewTable(page)).toHaveCount(0);
+	await expect(lookupRan(page)).toHaveCount(0);
 });
 
 // isbn_handling.feature: "A book can be looked up by any form of its ISBN" —

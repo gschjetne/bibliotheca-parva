@@ -1,9 +1,17 @@
 <script lang="ts">
 	import { matchLanguages, languageName } from '$lib/languages';
 
-	let { codes = $bindable([]) }: { codes: string[] } = $props();
+	// `pending` mirrors the uncommitted free text so the parent can block saving
+	// until it's turned into a chip (Enter) or cleared.
+	let {
+		codes = $bindable([]),
+		pending = $bindable('')
+	}: { codes: string[]; pending?: string } = $props();
 	let q = $state('');
 	const suggestions = $derived(matchLanguages(q));
+	$effect(() => {
+		pending = q.trim();
+	});
 
 	function add(code: string) {
 		if (!codes.includes(code)) codes = [...codes, code];

@@ -54,16 +54,11 @@ Feature: Editing a book's details
     Then the book is filed under "Fantasy"
     And the book is filed under "Middle-earth"
 
-  # @pending: the friendly language picker is a planned refinement (decision in
-  # features/README.md); the current build stores language codes in a free-text
-  # field, so these do not execute yet.
-  @pending
   Scenario: Recording the languages of a book from a friendly picker
     When I choose "English" from the language picker
     Then the saved book lists "English" as a language
     And the language is stored internally as a stable language code
 
-  @pending
   Scenario: Only recognised languages can be recorded
     Then the language picker offers "English" but not "Klingon"
     And there is no way to record an unrecognised language

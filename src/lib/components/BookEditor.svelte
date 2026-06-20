@@ -85,6 +85,17 @@
 	let languages = $state<string[]>(init?.languages ? JSON.parse(init.languages) : []);
 	let subjects = $state<string[]>([...(init?.subjects ?? [])]);
 	const roles = $state<Record<string, Contributor[]>>({ author: [], editor: [], translator: [], illustrator: [], foreword: [] });
+
+	// Uncommitted free text held by each chip widget (a name/subject/language
+	// typed but not yet turned into a chip with Enter). Saving with text still
+	// loose would silently drop it, so we block the save until every field is
+	// either chipped or cleared.
+	const rolePending = $state<Record<string, string>>({ author: '', editor: '', translator: '', illustrator: '', foreword: '' });
+	let subjectsPending = $state('');
+	let languagesPending = $state('');
+	const hasPendingText = $derived(
+		[...Object.values(rolePending), subjectsPending, languagesPending].some((t) => t.trim() !== '')
+	);
 	for (const c of init?.contributors ?? []) {
 		(roles[c.role] ??= []).push({ name: c.name_as_printed, personId: c.person_id ?? undefined });
 	}
@@ -197,11 +208,11 @@
 					<th class="p-2 border border-slate-300 text-left font-sans">{row.label}</th>
 					<td class="p-2 border border-slate-300">
 						{#if row.widget === 'role' && row.role}
-							<ContributorPicker bind:contributors={roles[row.role]} />
+							<ContributorPicker bind:contributors={roles[row.role]} bind:pending={rolePending[row.role]} />
 						{:else if row.widget === 'languages'}
-							<LanguagePicker bind:codes={languages} />
+							<LanguagePicker bind:codes={languages} bind:pending={languagesPending} />
 						{:else if row.widget === 'subjects'}
-							<SubjectPicker bind:subjects />
+							<SubjectPicker bind:subjects bind:pending={subjectsPending} />
 						{:else if row.widget === 'suggest' && row.key && row.endpoint}
 							<SuggestInput bind:value={rec[row.key]} endpoint={row.endpoint} />
 						{:else if row.widget === 'textarea' && row.key}
@@ -226,12 +237,17 @@
 	</table>
 
 	<div class="mt-4">
-		<button class="border border-slate-500 bg-sky-600 text-white shadow-md p-2 m-1 font-sans font-bold text-xs uppercase rounded-full cursor-pointer" onclick={save} disabled={saving}>
+		<button class="border border-slate-500 bg-sky-600 text-white shadow-md p-2 m-1 font-sans font-bold text-xs uppercase rounded-full cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" onclick={save} disabled={saving || hasPendingText}>
 			{saving ? 'Saving…' : 'Save book'}
 		</button>
 		<a href="/" class="text-xs text-slate-500 ml-2">cancel</a>
 		{#if book}
 			<button class="border border-red-700 text-red-700 p-2 m-1 ml-4 font-sans font-bold text-xs uppercase rounded-full cursor-pointer" onclick={remove}>Delete</button>
+		{/if}
+		{#if hasPendingText}
+			<p class="text-xs text-red-600 mt-1">
+				A name, subject, or language has been typed but not yet added. Press Enter to turn it into a chip, or clear the field, before saving.
+			</p>
 		{/if}
 	</div>
 {/if}

@@ -2,10 +2,18 @@
 	// Chips + autocomplete for subjects. Unlike contributors these are not
 	// entities with identity — each chip is just a name string, deduped on save.
 	// Suggestions reuse spellings already in the catalogue (/api/suggest/subjects).
-	let { subjects = $bindable([]) }: { subjects: string[] } = $props();
+	// `pending` mirrors the uncommitted free text so the parent can block saving
+	// until it's turned into a chip (Enter) or cleared.
+	let {
+		subjects = $bindable([]),
+		pending = $bindable('')
+	}: { subjects: string[]; pending?: string } = $props();
 	let q = $state('');
 	let suggestions = $state<string[]>([]);
 	let timer: ReturnType<typeof setTimeout> | undefined;
+	$effect(() => {
+		pending = q.trim();
+	});
 
 	function add(name: string) {
 		const n = name.trim();
