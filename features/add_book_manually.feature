@@ -18,4 +18,5 @@ Feature: Adding a book without an ISBN
     Given I have opened a blank book form
     When I enter a title and save
     Then a new book record is created with no ISBN
-    And I am taken to that book's edit page
+    And I am returned to the page I came from, ready to add the next book
+    And a confirmation offers a link to continue editing the saved book

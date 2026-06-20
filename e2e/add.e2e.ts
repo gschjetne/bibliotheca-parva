@@ -34,8 +34,15 @@ test('look up an ISBN, copy a source value into the record, save and delete', as
 	// Copy the publisher Libris offered.
 	await page.getByRole('button', { name: 'Allen & Unwin' }).click();
 
-	// Save -> land on the new book's edit page.
+	// Save -> return to where we came from (a direct visit, so the home page),
+	// ready for the next book in the stack. A toast confirms the save.
 	await page.getByRole('button', { name: 'Save book' }).click();
+	await expect(page).toHaveURL(/\/$/);
+	const toast = page.getByRole('status');
+	await expect(toast).toContainText('Book saved');
+
+	// "Continue editing" links back to the new book's edit page.
+	await toast.getByRole('link', { name: /continue editing/i }).click();
 	await expect(page).toHaveURL(/\/books\/\d+\/edit$/);
 	await expect(page.locator('input[name="title"]')).toHaveValue('The Fellowship of the Ring');
 
@@ -57,8 +64,14 @@ test('add a book with no ISBN entirely by hand, save and delete', async ({ page 
 
 	await page.locator('input[name="title"]').fill('Hand-bound Antiquarian Volume');
 
-	// Save -> land on the new book's edit page with the hand-entered title kept.
+	// Save -> return to where we came from (the home page), with a confirming
+	// toast that links back to the new record.
 	await page.getByRole('button', { name: 'Save book' }).click();
+	await expect(page).toHaveURL(/\/$/);
+	const toast = page.getByRole('status');
+	await expect(toast).toContainText('Book saved');
+
+	await toast.getByRole('link', { name: /continue editing/i }).click();
 	await expect(page).toHaveURL(/\/books\/\d+\/edit$/);
 	await expect(page.locator('input[name="title"]')).toHaveValue('Hand-bound Antiquarian Volume');
 

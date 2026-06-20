@@ -100,6 +100,14 @@ test('saving an edited book returns to the page the librarian came from', async 
 	await expect(page).toHaveURL(/\/$/);
 	await expect(page).not.toHaveURL(new RegExp(`/books/${id}/edit$`));
 
+	// A toast confirms the save and offers a link straight back to the record.
+	const toast = page.getByRole('status');
+	await expect(toast).toContainText('Book saved');
+	await expect(toast.getByRole('link', { name: /continue editing/i })).toHaveAttribute(
+		'href',
+		`/books/${id}/edit`
+	);
+
 	// The edit really was saved.
 	await page.goto(`/books/${id}/edit`);
 	await expect(page.locator('input[name="shelf_location"]')).toHaveValue('Hallway');

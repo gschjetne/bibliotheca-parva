@@ -54,6 +54,7 @@ Feature: Editing a book's details
     When I edit the book and save it
     Then the edit is saved
     And I am taken back to the search results I came from
+    And a confirmation offers a link to continue editing the book
 
   Scenario: Recording subjects and keywords
     When I add the subjects "Fantasy" and "Middle-earth" to the book

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
+	import Toast from '$lib/components/Toast.svelte';
 
 	let { children } = $props();
 </script>
@@ -10,3 +11,5 @@
 <div class="container mx-auto p-5">
 	{@render children()}
 </div>
+
+<Toast />

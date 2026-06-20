@@ -9,6 +9,7 @@
 		"!src/lib/**/*.test.ts",
 		"!src/lib/index.ts",
 		"!src/lib/languages.ts",
+		"!src/lib/toast.svelte.ts",
 		"!src/lib/server/db.ts",
 		"!src/lib/server/mutate.ts"
 	],

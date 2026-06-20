@@ -4,6 +4,7 @@
 	import { fetchSources, SOURCES, candidateField, type SourceState } from '$lib/sources';
 	import type { Candidate } from '$lib/providers';
 	import { toIsbn13 } from '$lib/isbn';
+	import { showToast } from '$lib/toast.svelte';
 	import LanguagePicker from './LanguagePicker.svelte';
 	import ContributorPicker from './ContributorPicker.svelte';
 	import SubjectPicker from './SubjectPicker.svelte';
@@ -175,17 +176,15 @@
 			error = 'Save failed.';
 			return;
 		}
-		if (book) {
-			// Editing an existing record: return to wherever the librarian came
-			// from (usually the search results), falling back to the home page
-			// when the edit page was opened directly with no in-app history.
-			if (cameFrom !== null) history.back();
-			else goto('/');
-			return;
-		}
-		// A brand-new book: land on its own edit page so it can be fleshed out.
-		const { id } = (await res.json()) as { id?: number };
-		goto(`/books/${id}/edit`);
+		// Return the librarian to wherever they came from so they can move straight
+		// on to the next book in the stack — both when editing an existing record
+		// and after adding a new one. A toast (rendered by the layout, so it
+		// survives this navigation) confirms the save and links back to the record
+		// in case they want to keep editing it.
+		const savedId = book ? book.id : ((await res.json()) as { id?: number }).id;
+		showToast({ message: 'Book saved.', href: `/books/${savedId}/edit`, linkText: 'Continue editing' });
+		if (cameFrom !== null) history.back();
+		else goto('/');
 	}
 
 	async function remove() {
