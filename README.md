@@ -1,5 +1,7 @@
 # Bibliotheca Parva
 
+[![CI](https://github.com/gschjetne/bibliotheca-parva/actions/workflows/ci.yml/badge.svg)](https://github.com/gschjetne/bibliotheca-parva/actions/workflows/ci.yml)
+
 ## Introduction
 
 _Bibliotheca Parva_ is a library management system designed for small private home libraries only.
