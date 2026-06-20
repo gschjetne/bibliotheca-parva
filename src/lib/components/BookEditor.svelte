@@ -32,8 +32,13 @@
 	};
 	type Contributor = { name: string; personId?: number };
 
-	let { book = null, initialIsbn = '' }: { book?: EditorBook | null; initialIsbn?: string } =
-		$props();
+	// `blank` opens the full editor table with no lookup — a hand-entered book
+	// (e.g. one too old to have an ISBN), filled in entirely by the librarian.
+	let {
+		book = null,
+		initialIsbn = '',
+		blank = false
+	}: { book?: EditorBook | null; initialIsbn?: string; blank?: boolean } = $props();
 	// One-time snapshot for initial state. The edit page remounts (via {#key})
 	// when the book id changes, so this is re-snapshotted per book.
 	const init = untrack(() => book);
@@ -168,7 +173,7 @@
 	{#if error}<span class="text-xs text-red-600">{error}</span>{/if}
 </form>
 
-{#if looked || book}
+{#if looked || book || blank}
 	<table class="table-fixed text-xs border border-slate-500 w-full shadow-md">
 		<thead class="font-sans">
 			<tr class="bg-sky-600 text-white">

@@ -44,3 +44,26 @@ test('look up an ISBN, copy a source value into the record, save and delete', as
 	await page.getByRole('button', { name: 'Delete' }).click();
 	await expect(page).toHaveURL(/\/$/);
 });
+
+// Acceptance: features/add_book_manually.feature — a book too old to have an
+// ISBN is hand-entered on a full blank form, with no source ever queried.
+test('add a book with no ISBN entirely by hand, save and delete', async ({ page }) => {
+	await page.goto('/add');
+
+	// The full editor is shown immediately — not just an ISBN field — and no
+	// lookup has run, so no source title appears.
+	await expect(page.getByRole('columnheader', { name: 'Your record' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'The Fellowship of the Ring' })).toHaveCount(0);
+
+	await page.locator('input[name="title"]').fill('Hand-bound Antiquarian Volume');
+
+	// Save -> land on the new book's edit page with the hand-entered title kept.
+	await page.getByRole('button', { name: 'Save book' }).click();
+	await expect(page).toHaveURL(/\/books\/\d+\/edit$/);
+	await expect(page.locator('input[name="title"]')).toHaveValue('Hand-bound Antiquarian Volume');
+
+	// Clean up so the catalogue isn't left with a test book.
+	page.on('dialog', (d) => d.accept());
+	await page.getByRole('button', { name: 'Delete' }).click();
+	await expect(page).toHaveURL(/\/$/);
+});

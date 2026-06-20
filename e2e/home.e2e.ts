@@ -50,9 +50,14 @@ test.describe('home-page add-by-ISBN', () => {
 		await expect(page).toHaveURL(/\/$/);
 	});
 
-	test('an empty ISBN field opens a blank book to add by hand', async ({ page }) => {
+	test('an empty ISBN field opens a full blank book form to add by hand', async ({ page }) => {
 		await page.goto('/');
 		await page.getByRole('button', { name: 'Add' }).click();
+
 		await expect(page).toHaveURL(/\/add$/);
+		// Not just an ISBN field: the full editor table is shown, ready to fill in
+		// a book that has no ISBN at all.
+		await expect(page.getByRole('columnheader', { name: 'Your record' })).toBeVisible();
+		await expect(page.locator('input[name="title"]')).toBeVisible();
 	});
 });
